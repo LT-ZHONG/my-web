@@ -6,7 +6,7 @@ import type {
   MediaUpdateData,
   MediaStats,
   ApiResponse 
-} from '../types'
+} from '@/types'
 
 export const mediaAPI = {
   /**

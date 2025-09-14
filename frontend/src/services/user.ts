@@ -4,7 +4,7 @@ import type {
   UserUpdateData, 
   User,
   ApiResponse 
-} from '../types'
+} from '@/types'
 
 export const userAPI = {
   /**

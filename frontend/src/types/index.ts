@@ -1,3 +1,5 @@
+import type { Component, CSSProperties } from 'vue'
+
 // API响应类型
 export interface ApiResponse<T = any> {
   success: boolean
@@ -345,7 +347,7 @@ export interface SocketData {
 // 路由相关类型
 export interface RouteConfig {
   path: string
-  element: React.ComponentType
+  component: Component
   requireAuth?: boolean
   requireVIP?: boolean
   title?: string
@@ -406,7 +408,7 @@ export type StorageKey =
 
 // 组件Props类型
 export interface BaseComponentProps {
-  className?: string
-  style?: React.CSSProperties
-  children?: React.ReactNode
+  class?: string | object
+  style?: CSSProperties
+  children?: Component | Component[]
 }

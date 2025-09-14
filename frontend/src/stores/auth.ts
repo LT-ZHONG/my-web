@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { authAPI } from '../services/auth'
 import { tokenManager, handleApiError } from '../utils/api'
-import type { User, LoginCredentials, RegisterData } from '../types'
+import type { User, LoginCredentials, RegisterData, AuthResponse } from '@/types'
 
 export const useAuthStore = defineStore('auth', () => {
   // 状态
@@ -45,8 +45,8 @@ export const useAuthStore = defineStore('auth', () => {
 
       const response = await authAPI.login(credentials)
       
-      // 后端直接返回 TokenResponse，不需要 .data
-      const tokenData = response.data || response
+      // 处理可能的 ApiResponse 包装
+      const tokenData = (response.data || response) as AuthResponse
       
       if (tokenData) {
         // 保存token
