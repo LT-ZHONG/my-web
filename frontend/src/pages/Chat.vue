@@ -39,7 +39,7 @@
     <!-- 普通用户聊天界面 -->
     <div v-if="!authStore.user?.is_admin" class="user-chat">
       <div v-if="adminInfo" class="admin-info">
-        <a-avatar :src="adminInfo.avatar_url" size="large">
+        <a-avatar size="large">
           {{ adminInfo.username?.charAt(0).toUpperCase() }}
         </a-avatar>
         <div class="admin-details">
@@ -63,7 +63,6 @@
           >
             <div class="message-avatar" v-if="!isOwnMessage(msg)">
               <a-avatar 
-                :src="msg.sender_avatar || adminInfo?.avatar_url" 
                 :alt="msg.sender_username"
                 size="small"
               >
@@ -81,10 +80,7 @@
           
           <!-- 正在输入指示器 -->
           <div v-if="typingUsers.length > 0" class="typing-indicator">
-            <a-avatar
-              :src="adminInfo?.avatar_url"
-              size="small"
-            >
+            <a-avatar size="small">
               {{ adminInfo?.username?.charAt(0).toUpperCase() }}
             </a-avatar>
             <span class="typing-text">正在输入...</span>
@@ -129,7 +125,6 @@
                 @click="switchToUser(chat)"
               >
                 <a-avatar 
-                  :src="chat.avatar_url" 
                   :alt="chat.username"
                   size="default"
                 >
@@ -157,7 +152,7 @@
         <a-col :xs="24" :md="16">
           <div v-if="currentChatUser" class="chat-box">
             <div class="chat-header-user">
-              <a-avatar :src="currentChatUser.avatar_url" size="large">
+              <a-avatar size="large">
                 {{ currentChatUser.username?.charAt(0).toUpperCase() }}
               </a-avatar>
               <div class="user-info">
@@ -180,7 +175,6 @@
               >
                 <div class="message-avatar" v-if="!isOwnMessage(msg)">
                   <a-avatar 
-                    :src="msg.sender_avatar || currentChatUser.avatar_url" 
                     :alt="msg.sender_username"
                     size="small"
                   >
@@ -198,10 +192,7 @@
               
               <!-- 正在输入指示器 -->
               <div v-if="typingUsers.length > 0" class="typing-indicator">
-                <a-avatar
-                  :src="currentChatUser.avatar_url"
-                  size="small"
-                >
+                <a-avatar size="small">
                   {{ currentChatUser.username?.charAt(0).toUpperCase() }}
                 </a-avatar>
                 <span class="typing-text">正在输入...</span>
@@ -392,8 +383,7 @@ const switchToUser = async (chatUser: any) => {
     // 连接WebSocket
     const userData = {
       username: authStore.user?.username,
-      nickname: authStore.user?.nickname || authStore.user?.full_name,
-      avatar_url: authStore.user?.avatar_url
+      nickname: authStore.user?.nickname || authStore.user?.full_name
     }
     
     await chatStore.connect(authStore.token || '', chatUser.room_id, userData)
@@ -421,8 +411,7 @@ const initializeUserChat = async () => {
     // 连接WebSocket
     const userData = {
       username: authStore.user?.username,
-      nickname: authStore.user?.nickname || authStore.user?.full_name,
-      avatar_url: authStore.user?.avatar_url
+      nickname: authStore.user?.nickname || authStore.user?.full_name
     }
     
     await chatStore.connect(authStore.token || '', roomData.room_id, userData)

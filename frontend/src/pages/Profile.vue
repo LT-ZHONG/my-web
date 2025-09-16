@@ -3,44 +3,18 @@
     <a-typography-title :level="2">个人资料</a-typography-title>
     
     <a-row :gutter="24">
-      <a-col :xs="24" :md="8">
-        <a-card title="头像信息">
-          <div class="avatar-section">
-            <a-avatar 
-              :size="120" 
-              :src="profile?.avatar_url" 
-              :icon="h(UserOutlined)" 
-            />
-            <div class="avatar-actions">
-              <a-upload
-                name="avatar"
-                :show-upload-list="false"
-                :before-upload="handleAvatarUpload"
-                accept="image/*"
-              >
-                <a-button type="primary" :loading="userStore.loading">
-                  <template #icon>
-                    <upload-outlined />
-                  </template>
-                  更换头像
-                </a-button>
-              </a-upload>
-            </div>
-            <div class="user-info">
-              <p class="username">@{{ profile?.username }}</p>
-              <a-tag v-if="profile?.is_vip" color="gold">
-                <template #icon>
-                  <crown-outlined />
-                </template>
-                VIP用户
-              </a-tag>
-            </div>
-          </div>
-        </a-card>
-      </a-col>
-      
-      <a-col :xs="24" :md="16">
+      <a-col :span="24">
         <a-card title="基本信息">
+          <div class="user-info-header">
+            <h3>@{{ profile?.username }}</h3>
+            <a-tag v-if="profile?.is_vip" color="gold">
+              <template #icon>
+                <crown-outlined />
+              </template>
+              VIP用户
+            </a-tag>
+          </div>
+          <a-divider />
           <a-form 
             :model="form" 
             :rules="rules"
@@ -135,18 +109,15 @@ import {
   Row as ARow,
   Col as ACol,
   Card as ACard,
-  Avatar as AAvatar,
   Button as AButton,
   Form as AForm,
   Input as AInput,
   Space as ASpace,
-  Upload as AUpload,
   Tag as ATag,
   Statistic as AStatistic,
+  Divider as ADivider,
 } from 'ant-design-vue'
 import { 
-  UserOutlined, 
-  UploadOutlined, 
   CrownOutlined 
 } from '@ant-design/icons-vue'
 import { useAuthStore } from '../stores/auth'
@@ -205,37 +176,6 @@ const resetForm = () => {
   initForm()
 }
 
-// 处理头像上传
-const handleAvatarUpload = async (file: File) => {
-  // 检查文件类型
-  const isImage = file.type.startsWith('image/')
-  if (!isImage) {
-    message.error('只能上传图片文件！')
-    return false
-  }
-
-  // 检查文件大小（2MB）
-  const isLt2M = file.size / 1024 / 1024 < 2
-  if (!isLt2M) {
-    message.error('图片大小不能超过2MB！')
-    return false
-  }
-
-  try {
-    const response = await userStore.uploadAvatar(file)
-    message.success('头像上传成功！')
-    
-    // 由于使用了计算属性，不需要手动更新profile
-    // 只需要更新auth store中的用户信息
-    if (response.data) {
-      authStore.updateUser({ avatar_url: response.data.avatar_url })
-    }
-  } catch (error) {
-    console.error('Avatar upload failed:', error)
-  }
-
-  return false // 阻止默认上传行为
-}
 
 // 提交表单
 const handleSubmit = async () => {
@@ -299,24 +239,18 @@ onMounted(() => {
   margin: 0 auto;
 }
 
-.avatar-section {
-  text-align: center;
-  padding: 24px;
+.user-info-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
 }
 
-.avatar-actions {
-  margin-top: 16px;
-}
-
-.user-info {
-  margin-top: 16px;
-}
-
-.username {
-  font-size: 16px;
+.user-info-header h3 {
+  margin: 0;
+  font-size: 18px;
   font-weight: 500;
-  color: #666;
-  margin: 8px 0 4px 0;
+  color: #333;
 }
 
 .ant-statistic :deep(.ant-statistic-title) {
@@ -331,10 +265,6 @@ onMounted(() => {
 
 @media (max-width: 768px) {
   .profile-container {
-    padding: 16px;
-  }
-  
-  .avatar-section {
     padding: 16px;
   }
 }

@@ -3,7 +3,6 @@ import { ref } from 'vue'
 import { userAPI } from '../services/user'
 import { handleApiError } from '../utils/api'
 import type { User, UserProfile, UserUpdateData, UserSettings, UserStats } from '@/types'
-import { useAuthStore } from './auth'
 
 export const useUserStore = defineStore('user', () => {
   // 状态
@@ -106,31 +105,6 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-  // 上传头像
-  const authStore = useAuthStore()
-  const uploadAvatar = async (file: File) => {
-    try {
-      setLoading(true)
-      clearError()
-
-      const response = await userAPI.uploadAvatar(file)
-      
-      if (response.data) {
-        // 更新 authStore 的用户数据
-        authStore.updateUser({ avatar_url: response.data.avatar_url })
-        // 获取最新的个人资料来更新 userStore 的数据
-        await getProfile()
-      }
-      
-      return response
-    } catch (err: any) {
-      const errorMessage = handleApiError(err)
-      setError(errorMessage)
-      throw new Error(errorMessage)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   // 更新用户设置（本地存储）
   const updateUserSettings = (settings: Partial<UserSettings>) => {
@@ -169,7 +143,6 @@ export const useUserStore = defineStore('user', () => {
     getProfile,
     updateProfile,
     getUserList,
-    uploadAvatar,
     updateUserSettings,
     loadUserSettings,
   }

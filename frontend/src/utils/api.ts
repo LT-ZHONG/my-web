@@ -137,21 +137,30 @@ export const handleApiError = (error: any): string => {
     // 服务器响应错误
     const { status, data } = error.response
     
+    // 优先使用后端返回的具体错误信息
+    const backendMessage = data?.detail || data?.message
+    
     switch (status) {
       case 400:
-        return data.message || '请求参数错误'
+        return backendMessage || '请求参数错误'
       case 401:
-        return '登录已过期，请重新登录'
+        // 对于401错误，优先使用后端返回的具体错误信息
+        // 这样可以区分"用户名密码错误"和"登录已过期"等不同情况
+        return backendMessage || '认证失败，请重新登录'
       case 403:
-        return '没有权限访问此资源'
+        return backendMessage || '没有权限访问此资源'
       case 404:
-        return '请求的资源不存在'
+        return backendMessage || '请求的资源不存在'
+      case 409:
+        return backendMessage || '资源冲突'
+      case 422:
+        return backendMessage || '数据验证失败'
       case 429:
-        return '请求过于频繁，请稍后再试'
+        return backendMessage || '请求过于频繁，请稍后再试'
       case 500:
-        return '服务器内部错误'
+        return backendMessage || '服务器内部错误'
       default:
-        return data.message || `请求失败 (${status})`
+        return backendMessage || `请求失败 (${status})`
     }
   } else if (error.request) {
     // 网络错误

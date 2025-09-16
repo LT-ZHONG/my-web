@@ -69,10 +69,9 @@
         :trigger="['click']"
       >
         <a-space :style="{ cursor: 'pointer' }">
-          <a-avatar 
-            :src="authStore.user?.avatar_url" 
-            :icon="h(UserOutlined)"
-          />
+          <a-avatar :icon="h(UserOutlined)">
+            {{ authStore.user?.username?.charAt(0).toUpperCase() }}
+          </a-avatar>
           <span 
             class="hidden-mobile" 
             :style="{ color: '#333' }"

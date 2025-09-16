@@ -153,23 +153,7 @@ export const useAuthStore = defineStore('auth', () => {
   // 更新用户信息
   const updateUser = (userData: Partial<User>) => {
     if (user.value) {
-      // If avatar_url is present, append a timestamp to bust browser cache so
-      // components using the avatar image will reload the new image.
-      const merged = { ...user.value, ...userData }
-      if (userData.avatar_url) {
-        try {
-          const url = new URL(userData.avatar_url, window.location.origin)
-          // Use timestamp param to avoid collisions with other params
-          url.searchParams.set('t', String(Date.now()))
-          merged.avatar_url = url.pathname + url.search
-        } catch (e) {
-          // Fallback: if URL parsing fails (relative paths, etc.), append param directly
-          const sep = userData.avatar_url!.includes('?') ? '&' : '?'
-          merged.avatar_url = `${userData.avatar_url}${sep}t=${Date.now()}`
-        }
-      }
-
-      user.value = merged
+      user.value = { ...user.value, ...userData }
     }
   }
 

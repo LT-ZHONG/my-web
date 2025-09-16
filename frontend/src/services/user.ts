@@ -47,14 +47,6 @@ export const userAPI = {
     return request.get('/users/', { params })
   },
 
-  /**
-   * 上传头像
-   */
-  uploadAvatar: (file: File): Promise<ApiResponse<{ avatar_url: string }>> => {
-    const formData = new FormData()
-    formData.append('file', file)
-    return request.upload('/users/avatar', formData)
-  }
 }
 
 export default userAPI
