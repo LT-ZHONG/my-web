@@ -57,6 +57,7 @@
           background: 'transparent',
           minWidth: '400px',
         }"
+        @click="handleNavClick"
       />
     </div>
 
@@ -143,7 +144,7 @@
         :selected-keys="[route.path]"
         :items="navItems"
         :style="{ border: 'none' }"
-        @click="mobileMenuVisible = false"
+        @click="handleMobileNavClick"
       />
     </div>
   </a-layout-header>
@@ -186,28 +187,39 @@ const navItems = computed<MenuProps['items']>(() => [
   {
     key: '/',
     icon: h(HomeOutlined),
-    label: h('router-link', { to: '/' }, '首页'),
+    label: '首页',
   },
   {
     key: '/gallery',
     icon: h(PictureOutlined),
-    label: h('router-link', { to: '/gallery' }, '照片视频'),
+    label: '照片视频',
   },
   {
     key: '/chat',
     icon: h(MessageOutlined),
-    label: h('router-link', { to: '/chat' }, '聊天'),
+    label: '聊天',
   },
   {
     key: '/vip',
     icon: h(CrownOutlined),
-    label: h('router-link', { to: '/vip' }, 'VIP会员'),
+    label: 'VIP会员',
   },
 ])
 
 // 切换移动端菜单
 const toggleMobileMenu = () => {
   mobileMenuVisible.value = !mobileMenuVisible.value
+}
+
+// 处理导航菜单点击
+const handleNavClick = ({ key }: { key: string }) => {
+  router.push(key)
+}
+
+// 处理移动端导航菜单点击
+const handleMobileNavClick = ({ key }: { key: string }) => {
+  router.push(key)
+  mobileMenuVisible.value = false
 }
 
 // 处理用户菜单点击
