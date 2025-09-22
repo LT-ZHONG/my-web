@@ -1,8 +1,8 @@
-import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
-import { authAPI } from '../services/auth'
-import { tokenManager, handleApiError } from '../utils/api'
-import type { User, LoginCredentials, RegisterData, AuthResponse } from '@/types'
+import {defineStore} from 'pinia'
+import {computed, ref} from 'vue'
+import {authAPI} from '../services/auth'
+import {handleApiError, tokenManager} from '../utils/api'
+import type {AuthResponse, LoginCredentials, RegisterData, User} from '@/types'
 
 export const useAuthStore = defineStore('auth', () => {
   // 状态
@@ -75,8 +75,7 @@ export const useAuthStore = defineStore('auth', () => {
       setLoading(true)
       clearError()
 
-      const response = await authAPI.register(userData)
-      return response
+      return await authAPI.register(userData)
     } catch (err: any) {
       const errorMessage = handleApiError(err)
       setError(errorMessage)
@@ -104,7 +103,7 @@ export const useAuthStore = defineStore('auth', () => {
       return response
     } catch (err: any) {
       // Token可能无效，清除本地存储
-      logout()
+      await logout()
       const errorMessage = handleApiError(err)
       setError(errorMessage)
       throw new Error(errorMessage)
@@ -123,8 +122,7 @@ export const useAuthStore = defineStore('auth', () => {
       setLoading(true)
       clearError()
 
-      const response = await authAPI.changePassword(passwordData)
-      return response
+      return await authAPI.changePassword(passwordData)
     } catch (err: any) {
       const errorMessage = handleApiError(err)
       setError(errorMessage)

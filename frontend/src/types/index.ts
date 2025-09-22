@@ -8,27 +8,12 @@ export interface ApiResponse<T = any> {
   error?: string
 }
 
-// 分页类型
-export interface Pagination {
-  current: number
-  pageSize: number
-  total: number
-  totalPages: number
-}
-
-export interface PaginatedResponse<T> extends ApiResponse<T> {
-  pagination: Pagination
-}
-
 // 用户相关类型
 export interface User {
   id: number
   email: string
   username: string
-  full_name?: string
-  avatar_url?: string
   bio?: string
-  phone?: string
   is_active: boolean
   is_admin: boolean
   is_vip: boolean
@@ -77,13 +62,6 @@ export interface RegisterData {
   password: string
   confirm_password: string
   full_name?: string
-}
-
-export interface AuthTokens {
-  access_token: string
-  refresh_token?: string
-  token_type: string
-  expires_in?: number
 }
 
 export interface AuthResponse {

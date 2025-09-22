@@ -34,14 +34,6 @@
               </a-col>
             </a-row>
             
-            <a-form-item label="姓名" name="full_name">
-              <a-input v-model:value="form.full_name" placeholder="请输入姓名" />
-            </a-form-item>
-            
-            <a-form-item label="手机号" name="phone">
-              <a-input v-model:value="form.phone" placeholder="请输入手机号" />
-            </a-form-item>
-            
             <a-form-item label="个人简介" name="bio">
               <a-textarea 
                 v-model:value="form.bio" 
@@ -120,10 +112,10 @@ import {
 import { 
   CrownOutlined 
 } from '@ant-design/icons-vue'
-import { useAuthStore } from '../stores/auth'
-import { useUserStore } from '../stores/user'
-import { formatDate, validatePhone } from '../utils'
-import type { UserUpdateData } from '../types'
+import { useAuthStore } from '@/stores'
+import { useUserStore } from '@/stores'
+import { formatDate } from '@/utils'
+import type { UserUpdateData } from '@/types'
 
 const authStore = useAuthStore()
 const userStore = useUserStore()
@@ -135,26 +127,11 @@ const profile = computed(() => authStore.user || userStore.profile)
 const form = reactive({
   username: '',
   email: '',
-  full_name: '',
-  phone: '',
   bio: '',
 })
 
 // 表单验证规则
 const rules = {
-  full_name: [
-    { max: 50, message: '姓名长度不能超过50个字符' }
-  ],
-  phone: [
-    { 
-      validator: (_rule: any, value: string) => {
-        if (value && !validatePhone(value)) {
-          return Promise.reject('请输入正确的手机号格式')
-        }
-        return Promise.resolve()
-      }
-    }
-  ],
   bio: [
     { max: 500, message: '个人简介不能超过500个字符' }
   ]
@@ -165,8 +142,6 @@ const initForm = () => {
   if (profile.value) {
     form.username = profile.value.username
     form.email = profile.value.email
-    form.full_name = profile.value.full_name || ''
-    form.phone = profile.value.phone || ''
     form.bio = profile.value.bio || ''
   }
 }
@@ -181,8 +156,6 @@ const resetForm = () => {
 const handleSubmit = async () => {
   try {
     const updateData: UserUpdateData = {
-      full_name: form.full_name || undefined,
-      phone: form.phone || undefined,
       bio: form.bio || undefined,
     }
 
