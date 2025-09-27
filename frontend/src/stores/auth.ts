@@ -2,7 +2,7 @@ import {defineStore} from 'pinia'
 import {computed, ref} from 'vue'
 import {authAPI} from '../services/auth'
 import {handleApiError, tokenManager} from '../utils/api'
-import type {AuthResponse, LoginCredentials, RegisterData, User} from '@/types'
+import type {LoginCredentials, RegisterData, User} from '@/types'
 
 export const useAuthStore = defineStore('auth', () => {
   // 状态
@@ -45,10 +45,10 @@ export const useAuthStore = defineStore('auth', () => {
 
       const response = await authAPI.login(credentials)
       
-      // 处理可能的 ApiResponse 包装
-      const tokenData = (response.data || response) as AuthResponse
-      
-      if (tokenData) {
+      // 检查响应是否成功且包含数据
+      if (response.success && response.data) {
+        const tokenData = response.data
+        
         // 保存token
         tokenManager.setToken(tokenData.access_token)
         if (tokenData.refresh_token) {
@@ -57,6 +57,10 @@ export const useAuthStore = defineStore('auth', () => {
         
         // 保存用户信息
         setUser(tokenData.user)
+      } else {
+        // 登录失败，抛出错误
+        const errorMessage = response.error || response.message || '登录失败'
+        setError(errorMessage)
       }
 
       return response
@@ -93,11 +97,14 @@ export const useAuthStore = defineStore('auth', () => {
 
       const response = await authAPI.getCurrentUser()
       
-      // 后端直接返回用户信息
-      const userData = response.data || response
-      
-      if (userData) {
-        setUser(userData)
+      // 检查响应是否成功且包含用户数据
+      if (response.success && response.data) {
+        setUser(response.data)
+      } else {
+        // 获取用户信息失败，清除本地存储
+        await logout()
+        const errorMessage = response.error || response.message || '获取用户信息失败'
+        setError(errorMessage)
       }
 
       return response
@@ -163,7 +170,7 @@ export const useAuthStore = defineStore('auth', () => {
         await getCurrentUser()
       } catch (err) {
         // Token无效，清除本地存储
-        logout()
+        await logout()
       }
     }
   }

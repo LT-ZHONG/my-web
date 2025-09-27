@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
 import { storage } from './index'
-import type { ApiResponse } from '../types'
+import type { ApiResponse } from '@/types'
 
 // API配置
 const API_CONFIG = {
