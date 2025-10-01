@@ -335,3 +335,36 @@ export const getDeviceInfo = () => {
     language: navigator.language,
   }
 }
+
+/**
+ * 获取完整的文件 URL
+ * 将相对路径转换为完整的 URL
+ */
+export const getFullFileUrl = (path: string | null | undefined): string => {
+  if (!path) {
+    console.warn('[getFullFileUrl] path 为空')
+    return ''
+  }
+  
+  // 如果已经是完整 URL，直接返回
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return path
+  }
+  
+  // 获取后端基础 URL（去掉 /api/v1 部分）
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1'
+  const backendBaseUrl = apiBaseUrl.replace(/\/api\/v1$/, '')
+  
+  // 确保路径以 / 开头
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`
+  
+  const fullUrl = `${backendBaseUrl}${normalizedPath}`
+  
+  console.log('[getFullFileUrl] 路径转换:', {
+    原始路径: path,
+    后端基础URL: backendBaseUrl,
+    完整URL: fullUrl
+  })
+  
+  return fullUrl
+}

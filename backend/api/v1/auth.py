@@ -160,7 +160,7 @@ async def change_password(
 
 @router.get("/me", response_model=UserResponse, summary="获取当前用户信息")
 async def get_current_user_info(
-    current_user = Depends(get_current_active_user)
+    current_user=Depends(get_current_active_user)
 ):
     """
     获取当前登录用户的详细信息

@@ -181,9 +181,21 @@ async def process_uploaded_file(
 
 def get_file_url(file_path: str) -> str:
     """获取文件的URL路径"""
+    if not file_path:
+        print(f"[get_file_url] 警告: file_path 为空")
+        return None
+    
     # 移除uploads目录前的路径部分
     relative_path = file_path.replace(settings.UPLOAD_DIR, "").lstrip("/\\")
-    return f"/static/uploads/{relative_path.replace(os.sep, '/')}"
+    url = f"/static/uploads/{relative_path.replace(os.sep, '/')}"
+    
+    print(f"[get_file_url] 转换:")
+    print(f"  file_path: {file_path}")
+    print(f"  UPLOAD_DIR: {settings.UPLOAD_DIR}")
+    print(f"  relative_path: {relative_path}")
+    print(f"  最终URL: {url}")
+    
+    return url
 
 
 def clean_empty_directories(directory: str):

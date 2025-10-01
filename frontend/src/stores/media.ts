@@ -54,22 +54,51 @@ export const useMediaStore = defineStore('media', () => {
       setLoading(true)
       clearError()
 
-      const requestParams = {
+      // 过滤掉 undefined 和空字符串的参数
+      const requestParams: any = {
         page: params?.page || pagination.value.page,
         page_size: params?.page_size || pagination.value.page_size,
-        ...params
       }
+      
+      if (params) {
+        Object.keys(params).forEach(key => {
+          const value = params[key as keyof MediaListParams]
+          if (value !== undefined && value !== '' && key !== 'page' && key !== 'page_size') {
+            requestParams[key] = value
+          }
+        })
+      }
+
+      console.log('[mediaStore.getMediaList] 请求参数:', requestParams)
 
       const response = await mediaAPI.getMediaList(requestParams)
       
-      if (response.data) {
-        mediaItems.value = response.data.media
-        pagination.value = {
-          page: response.data.page,
-          page_size: response.data.page_size,
-          total: response.data.total,
-          total_pages: response.data.total_pages,
-        }
+      console.log('[mediaStore.getMediaList] 响应数据:', response)
+      console.log('[mediaStore.getMediaList] 媒体列表:', response.media_list)
+      console.log('[mediaStore.getMediaList] 媒体列表长度:', response.media_list?.length)
+      console.log('[mediaStore.getMediaList] 总数:', response.total)
+      
+      // 注意：FastAPI的response_model直接返回模型数据，不需要访问.data
+      mediaItems.value = response.media_list || []
+      console.log('[mediaStore.getMediaList] 赋值后 mediaItems.value 长度:', mediaItems.value.length)
+      
+      // 打印每个媒体项的详细信息
+      if (mediaItems.value.length > 0) {
+        console.log('[mediaStore.getMediaList] 媒体项详细信息:')
+        mediaItems.value.forEach((item, index) => {
+          console.log(`  [${index}] ID: ${item.id}, 标题: ${item.title}`)
+          console.log(`      file_url: ${item.file_url}`)
+          console.log(`      thumbnail_url: ${item.thumbnail_url}`)
+          console.log(`      media_type: ${item.media_type}`)
+          console.log(`      status: ${item.status}`)
+        })
+      }
+      
+      pagination.value = {
+        page: response.page,
+        page_size: response.page_size,
+        total: response.total,
+        total_pages: response.total_pages,
       }
 
       return response
@@ -90,9 +119,8 @@ export const useMediaStore = defineStore('media', () => {
 
       const response = await mediaAPI.getMediaById(id)
       
-      if (response.data) {
-        currentMedia.value = response.data
-      }
+      // FastAPI response_model 直接返回数据
+      currentMedia.value = response
 
       return response
     } catch (err: any) {
@@ -111,17 +139,20 @@ export const useMediaStore = defineStore('media', () => {
       setUploadProgress(0)
       clearError()
 
+      console.log('[mediaStore.uploadMedia] 开始上传:', file.name, data)
+
       const response = await mediaAPI.uploadMedia(file, data, (progress) => {
         setUploadProgress(progress)
       })
       
-      if (response.data) {
-        // 添加到媒体列表开头
-        mediaItems.value.unshift(response.data)
-      }
+      console.log('[mediaStore.uploadMedia] 上传响应:', response)
+      console.log('[mediaStore.uploadMedia] 上传成功，媒体对象:', response.media)
+      // 上传成功后不直接添加到列表，由页面刷新处理
+      // mediaItems.value.unshift(response.media)
 
       return response
     } catch (err: any) {
+      console.error('[mediaStore.uploadMedia] 上传失败:', err)
       const errorMessage = handleApiError(err)
       setError(errorMessage)
       throw new Error(errorMessage)
@@ -139,16 +170,14 @@ export const useMediaStore = defineStore('media', () => {
 
       const response = await mediaAPI.updateMedia(id, data)
       
-      if (response.data) {
-        // 更新本地状态
-        const index = mediaItems.value.findIndex(item => item.id === id)
-        if (index !== -1) {
-          mediaItems.value[index] = response.data
-        }
-        
-        if (currentMedia.value?.id === id) {
-          currentMedia.value = response.data
-        }
+      // 更新本地状态
+      const index = mediaItems.value.findIndex(item => item.id === id)
+      if (index !== -1) {
+        mediaItems.value[index] = response
+      }
+      
+      if (currentMedia.value?.id === id) {
+        currentMedia.value = response
       }
 
       return response
@@ -195,16 +224,14 @@ export const useMediaStore = defineStore('media', () => {
     try {
       const response = await mediaAPI.toggleLike(id)
       
-      if (response.data) {
-        // 更新本地状态
-        const mediaItem = mediaItems.value.find(item => item.id === id)
-        if (mediaItem) {
-          mediaItem.likes = response.data.likes
-        }
+      // 更新本地状态
+      const mediaItem = mediaItems.value.find(item => item.id === id)
+      if (mediaItem && response.like_count !== undefined) {
+        mediaItem.like_count = response.like_count
+      }
 
-        if (currentMedia.value?.id === id) {
-          currentMedia.value.likes = response.data.likes
-        }
+      if (currentMedia.value?.id === id && response.like_count !== undefined) {
+        currentMedia.value.like_count = response.like_count
       }
 
       return response
@@ -234,9 +261,7 @@ export const useMediaStore = defineStore('media', () => {
 
       const response = await mediaAPI.getMediaStats()
       
-      if (response.data) {
-        mediaStats.value = response.data
-      }
+      mediaStats.value = response
 
       return response
     } catch (err: any) {

@@ -1,10 +1,10 @@
 """
 媒体管理服务
 """
-import os
-from typing import Optional, List, Tuple, Dict, Any
-from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_, desc, asc
+
+from typing import Optional, List, Tuple
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import and_, or_, desc, asc, select, func
 from fastapi import UploadFile, HTTPException
 from datetime import datetime
 
@@ -21,7 +21,7 @@ from utils.exceptions import FileUploadError
 class MediaService:
     """媒体管理服务"""
     
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
     
     async def upload_media(
@@ -35,14 +35,28 @@ class MediaService:
             # 处理文件上传
             file_info = await process_uploaded_file(file, user_id)
             
+            # 打印文件信息
+            print(f"[MediaService.upload_media] 文件处理结果:")
+            print(f"  filename: {file_info['filename']}")
+            print(f"  file_path: {file_info['file_path']}")
+            print(f"  thumbnail_path: {file_info.get('thumbnail_path')}")
+            print(f"  file_type: {file_info['file_type']}")
+            
             # 创建媒体记录
+            file_url = get_file_url(file_info["file_path"])
+            thumbnail_url = get_file_url(file_info["thumbnail_path"]) if file_info.get("thumbnail_path") else None
+            
+            print(f"[MediaService.upload_media] URL生成结果:")
+            print(f"  file_url: {file_url}")
+            print(f"  thumbnail_url: {thumbnail_url}")
+            
             media = Media(
                 filename=file_info["filename"],
                 original_filename=file_info["original_filename"],
                 file_path=file_info["file_path"],
-                file_url=get_file_url(file_info["file_path"]),
+                file_url=file_url,
                 thumbnail_path=file_info.get("thumbnail_path"),
-                thumbnail_url=get_file_url(file_info["thumbnail_path"]) if file_info.get("thumbnail_path") else None,
+                thumbnail_url=thumbnail_url,
                 media_type=MediaType.IMAGE if file_info["file_type"] == "image" else MediaType.VIDEO,
                 mime_type=file_info["mime_type"],
                 file_size=file_info["file_size"],
@@ -64,21 +78,21 @@ class MediaService:
                 media.is_featured = media_data.is_featured
             
             self.db.add(media)
-            self.db.commit()
-            self.db.refresh(media)
+            await self.db.commit()
+            await self.db.refresh(media)
             
             # 更新用户媒体计数
-            self._update_user_media_count(user_id)
+            await self._update_user_media_count(user_id)
             
             return media
             
         except FileUploadError as e:
             raise HTTPException(status_code=400, detail=str(e))
         except Exception as e:
-            self.db.rollback()
+            await self.db.rollback()
             raise HTTPException(status_code=500, detail=f"文件上传失败: {str(e)}")
     
-    def get_media_list(
+    async def get_media_list(
         self, 
         query: MediaListQuery,
         current_user_id: Optional[int] = None,
@@ -87,14 +101,18 @@ class MediaService:
         """获取媒体列表"""
         filters = []
         
+        print(f"[MediaService.get_media_list] 用户ID: {current_user_id}, 是否管理员: {is_admin}")
+        
         # 基础过滤条件
         if not is_admin:
             # 非管理员只能看到状态为active的媒体
             filters.append(Media.status == MediaStatus.ACTIVE)
+            print(f"[MediaService.get_media_list] 添加过滤: status == ACTIVE")
             
             # 如果不是所有者，不能看到私密内容
             if query.owner_id != current_user_id:
                 filters.append(Media.is_private == False)
+                print(f"[MediaService.get_media_list] 添加过滤: is_private == False")
         
         # 搜索条件
         if query.search:
@@ -127,34 +145,81 @@ class MediaService:
             filters.append(Media.tags.ilike(f"%{query.tags}%"))
         
         # 构建查询
-        base_query = self.db.query(Media).filter(and_(*filters))
+        stmt = select(Media).filter(and_(*filters))
         
         # 计算总数
-        total = base_query.count()
+        count_stmt = select(func.count(Media.id)).filter(and_(*filters))
+        count_result = await self.db.execute(count_stmt)
+        total = count_result.scalar()
+        
+        print(f"[MediaService.get_media_list] 符合条件的总数: {total}")
+        
+        # 动态排序
+        sort_field = query.sort_by or "created_at"
+        sort_order = query.order or "desc"
+        
+        # 映射排序字段
+        sort_column_map = {
+            "created_at": Media.created_at,
+            "views": Media.view_count,
+            "likes": Media.like_count,
+            "title": Media.title,
+            "updated_at": Media.updated_at,
+            "file_size": Media.file_size
+        }
+        
+        # 获取排序列
+        sort_column = sort_column_map.get(sort_field, Media.created_at)
+        
+        # 应用排序方向
+        if sort_order.lower() == "asc":
+            order_by_clause = asc(sort_column)
+        else:
+            order_by_clause = desc(sort_column)
         
         # 分页和排序
-        media_list = (
-            base_query
-            .order_by(desc(Media.is_featured), desc(Media.created_at))
+        stmt = (
+            stmt
+            .order_by(desc(Media.is_featured), order_by_clause)
             .offset((query.page - 1) * query.page_size)
             .limit(query.page_size)
-            .all()
         )
+        
+        result = await self.db.execute(stmt)
+        media_list = result.scalars().all()
+        
+        print(f"[MediaService.get_media_list] 查询到 {len(media_list)} 条数据")
+        for media in media_list:
+            print(f"  - Media ID: {media.id}, 标题: {media.title}, 状态: {media.status}, 私密: {media.is_private}")
+        
+        # 转换为响应对象
+        from schemas.media import MediaResponse
+        media_responses = [MediaResponse.from_orm_model(media) for media in media_list]
+        
+        # 打印转换后的响应数据
+        print(f"[MediaService.get_media_list] 转换为响应对象后:")
+        for media_resp in media_responses:
+            print(f"  - ID: {media_resp.id}, 标题: {media_resp.title}")
+            print(f"    file_url: {media_resp.file_url}")
+            print(f"    thumbnail_url: {media_resp.thumbnail_url}")
+            print(f"    media_type: {media_resp.media_type}")
         
         # 计算总页数
         total_pages = (total + query.page_size - 1) // query.page_size
         
         return MediaListResponse(
-            media_list=media_list,
+            media_list=media_responses,
             total=total,
             page=query.page,
             page_size=query.page_size,
             total_pages=total_pages
         )
     
-    def get_media_by_id(self, media_id: int, current_user_id: Optional[int] = None, is_admin: bool = False) -> Optional[Media]:
+    async def get_media_by_id(self, media_id: int, current_user_id: Optional[int] = None, is_admin: bool = False) -> Optional[Media]:
         """根据ID获取媒体"""
-        media = self.db.query(Media).filter(Media.id == media_id).first()
+        stmt = select(Media).filter(Media.id == media_id)
+        result = await self.db.execute(stmt)
+        media = result.scalar_one_or_none()
         
         if not media:
             return None
@@ -172,13 +237,15 @@ class MediaService:
         # 增加查看次数
         if current_user_id != media.owner_id:  # 不对所有者计数
             media.view_count += 1
-            self.db.commit()
+            await self.db.commit()
         
         return media
     
-    def update_media(self, media_id: int, update_data: MediaUpdate, user_id: int, is_admin: bool = False) -> Optional[Media]:
+    async def update_media(self, media_id: int, update_data: MediaUpdate, user_id: int, is_admin: bool = False) -> Optional[Media]:
         """更新媒体信息"""
-        media = self.db.query(Media).filter(Media.id == media_id).first()
+        stmt = select(Media).filter(Media.id == media_id)
+        result = await self.db.execute(stmt)
+        media = result.scalar_one_or_none()
         
         if not media:
             return None
@@ -192,14 +259,16 @@ class MediaService:
             setattr(media, field, value)
         
         media.updated_at = datetime.utcnow()
-        self.db.commit()
-        self.db.refresh(media)
+        await self.db.commit()
+        await self.db.refresh(media)
         
         return media
     
     async def delete_media(self, media_id: int, user_id: int, is_admin: bool = False) -> bool:
         """删除媒体"""
-        media = self.db.query(Media).filter(Media.id == media_id).first()
+        stmt = select(Media).filter(Media.id == media_id)
+        result = await self.db.execute(stmt)
+        media = result.scalar_one_or_none()
         
         if not media:
             return False
@@ -216,21 +285,23 @@ class MediaService:
                 await delete_file(media.thumbnail_path)
             
             # 删除数据库记录
-            self.db.delete(media)
-            self.db.commit()
+            await self.db.delete(media)
+            await self.db.commit()
             
             # 更新用户媒体计数
-            self._update_user_media_count(media.owner_id)
+            await self._update_user_media_count(media.owner_id)
             
             return True
             
         except Exception as e:
-            self.db.rollback()
+            await self.db.rollback()
             raise HTTPException(status_code=500, detail=f"删除媒体失败: {str(e)}")
     
-    def toggle_like(self, media_id: int, user_id: int) -> Tuple[bool, int]:
+    async def toggle_like(self, media_id: int, user_id: int) -> Tuple[bool, int]:
         """切换点赞状态"""
-        media = self.db.query(Media).filter(Media.id == media_id).first()
+        stmt = select(Media).filter(Media.id == media_id)
+        result = await self.db.execute(stmt)
+        media = result.scalar_one_or_none()
         
         if not media:
             raise HTTPException(status_code=404, detail="媒体不存在")
@@ -238,18 +309,19 @@ class MediaService:
         # 这里简化处理，实际应该有单独的点赞表
         # 暂时只更新点赞数，不跟踪具体用户
         media.like_count += 1
-        self.db.commit()
+        await self.db.commit()
         
         return True, media.like_count
     
-    def get_media_stats(self, user_id: Optional[int] = None) -> MediaStatsResponse:
+    async def get_media_stats(self, user_id: Optional[int] = None) -> MediaStatsResponse:
         """获取媒体统计信息"""
-        query = self.db.query(Media)
+        stmt = select(Media)
         
         if user_id:
-            query = query.filter(Media.owner_id == user_id)
+            stmt = stmt.filter(Media.owner_id == user_id)
         
-        media_list = query.all()
+        result = await self.db.execute(stmt)
+        media_list = result.scalars().all()
         
         total_media = len(media_list)
         total_images = len([m for m in media_list if m.media_type == MediaType.IMAGE])
@@ -269,49 +341,59 @@ class MediaService:
             free_media=free_media
         )
     
-    def _update_user_media_count(self, user_id: int):
+    async def _update_user_media_count(self, user_id: int):
         """更新用户媒体计数"""
-        count = self.db.query(Media).filter(
+        count_stmt = select(func.count(Media.id)).filter(
             Media.owner_id == user_id,
             Media.status == MediaStatus.ACTIVE
-        ).count()
+        )
+        count_result = await self.db.execute(count_stmt)
+        count = count_result.scalar()
         
-        user = self.db.query(User).filter(User.id == user_id).first()
+        user_stmt = select(User).filter(User.id == user_id)
+        user_result = await self.db.execute(user_stmt)
+        user = user_result.scalar_one_or_none()
         if user:
             user.media_count = count
-            self.db.commit()
+            await self.db.commit()
 
 
 class MediaCategoryService:
     """媒体分类服务"""
     
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
     
-    def create_category(self, category_data: MediaCategoryCreate) -> MediaCategory:
+    async def create_category(self, category_data: MediaCategoryCreate) -> MediaCategory:
         """创建媒体分类"""
         category = MediaCategory(**category_data.dict())
         self.db.add(category)
-        self.db.commit()
-        self.db.refresh(category)
+        await self.db.commit()
+        await self.db.refresh(category)
         return category
     
-    def get_categories(self, active_only: bool = True) -> List[MediaCategory]:
+    async def get_categories(self, active_only: bool = True) -> List[MediaCategory]:
         """获取分类列表"""
-        query = self.db.query(MediaCategory)
+        stmt = select(MediaCategory)
         
         if active_only:
-            query = query.filter(MediaCategory.is_active == True)
+            stmt = stmt.filter(MediaCategory.is_active == True)
         
-        return query.order_by(MediaCategory.sort_order, MediaCategory.name).all()
+        stmt = stmt.order_by(MediaCategory.sort_order, MediaCategory.name)
+        result = await self.db.execute(stmt)
+        return result.scalars().all()
     
-    def get_category_by_id(self, category_id: int) -> Optional[MediaCategory]:
+    async def get_category_by_id(self, category_id: int) -> Optional[MediaCategory]:
         """根据ID获取分类"""
-        return self.db.query(MediaCategory).filter(MediaCategory.id == category_id).first()
+        stmt = select(MediaCategory).filter(MediaCategory.id == category_id)
+        result = await self.db.execute(stmt)
+        return result.scalar_one_or_none()
     
-    def update_category(self, category_id: int, update_data: MediaCategoryUpdate) -> Optional[MediaCategory]:
+    async def update_category(self, category_id: int, update_data: MediaCategoryUpdate) -> Optional[MediaCategory]:
         """更新分类"""
-        category = self.db.query(MediaCategory).filter(MediaCategory.id == category_id).first()
+        stmt = select(MediaCategory).filter(MediaCategory.id == category_id)
+        result = await self.db.execute(stmt)
+        category = result.scalar_one_or_none()
         
         if not category:
             return None
@@ -320,23 +402,27 @@ class MediaCategoryService:
             setattr(category, field, value)
         
         category.updated_at = datetime.utcnow()
-        self.db.commit()
-        self.db.refresh(category)
+        await self.db.commit()
+        await self.db.refresh(category)
         
         return category
     
-    def delete_category(self, category_id: int) -> bool:
+    async def delete_category(self, category_id: int) -> bool:
         """删除分类"""
-        category = self.db.query(MediaCategory).filter(MediaCategory.id == category_id).first()
+        stmt = select(MediaCategory).filter(MediaCategory.id == category_id)
+        result = await self.db.execute(stmt)
+        category = result.scalar_one_or_none()
         
         if not category:
             return False
         
         # 检查是否有媒体使用该分类
-        media_count = self.db.query(Media).filter(Media.category_id == category_id).count()
+        count_stmt = select(func.count(Media.id)).filter(Media.category_id == category_id)
+        count_result = await self.db.execute(count_stmt)
+        media_count = count_result.scalar()
         if media_count > 0:
             raise HTTPException(status_code=400, detail="该分类下还有媒体文件，无法删除")
         
-        self.db.delete(category)
-        self.db.commit()
+        await self.db.delete(category)
+        await self.db.commit()
         return True

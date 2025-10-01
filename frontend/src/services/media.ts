@@ -12,20 +12,21 @@ export const mediaAPI = {
   /**
    * 获取媒体列表
    */
-  getMediaList: (params?: MediaListParams): Promise<ApiResponse<{
-    media: MediaItem[]
+  getMediaList: (params?: MediaListParams): Promise<{
+    media_list: MediaItem[]
     total: number
     page: number
     page_size: number
     total_pages: number
-  }>> => {
+  }> => {
+    console.log('[mediaAPI.getMediaList] 请求参数:', params)
     return request.get('/media/', { params })
   },
 
   /**
    * 获取媒体详情
    */
-  getMediaById: (mediaId: number): Promise<ApiResponse<MediaItem>> => {
+  getMediaById: (mediaId: number): Promise<MediaItem> => {
     return request.get(`/media/${mediaId}`)
   },
 
@@ -36,7 +37,8 @@ export const mediaAPI = {
     file: File, 
     data: MediaUploadData, 
     onProgress?: (progress: number) => void
-  ): Promise<ApiResponse<MediaItem>> => {
+  ): Promise<{ media: MediaItem; message: string }> => {
+    console.log('[mediaAPI.uploadMedia] 上传文件:', file.name, '数据:', data)
     const formData = new FormData()
     formData.append('file', file)
     formData.append('title', data.title)
@@ -52,27 +54,27 @@ export const mediaAPI = {
       formData.append('price', data.price.toString())
     }
 
-    return request.upload('/media/upload', formData, onProgress)
+    return request.upload<{ media: MediaItem; message: string }>('/media/upload', formData, onProgress)
   },
 
   /**
    * 更新媒体信息
    */
-  updateMedia: (mediaId: number, data: MediaUpdateData): Promise<ApiResponse<MediaItem>> => {
+  updateMedia: (mediaId: number, data: MediaUpdateData): Promise<MediaItem> => {
     return request.put(`/media/${mediaId}`, data)
   },
 
   /**
    * 删除媒体
    */
-  deleteMedia: (mediaId: number): Promise<ApiResponse<void>> => {
+  deleteMedia: (mediaId: number): Promise<{ message: string }> => {
     return request.delete(`/media/${mediaId}`)
   },
 
   /**
    * 点赞/取消点赞媒体
    */
-  toggleLike: (mediaId: number): Promise<ApiResponse<{ liked: boolean; likes: number }>> => {
+  toggleLike: (mediaId: number): Promise<{ message: string; is_liked: boolean; like_count: number }> => {
     return request.post(`/media/${mediaId}/like`)
   },
 
@@ -86,19 +88,19 @@ export const mediaAPI = {
   /**
    * 获取媒体统计信息
    */
-  getMediaStats: (): Promise<ApiResponse<MediaStats>> => {
+  getMediaStats: (): Promise<MediaStats> => {
     return request.get('/media/stats/overview')
   },
 
   /**
    * 获取分类列表
    */
-  getCategories: (): Promise<ApiResponse<Array<{
+  getCategories: (): Promise<Array<{
     id: number
     name: string
     description?: string
     media_count: number
-  }>>> => {
+  }>> => {
     return request.get('/media/categories/')
   },
 
@@ -108,11 +110,11 @@ export const mediaAPI = {
   createCategory: (data: {
     name: string
     description?: string
-  }): Promise<ApiResponse<{
+  }): Promise<{
     id: number
     name: string
     description?: string
-  }>> => {
+  }> => {
     return request.post('/media/categories/', data)
   },
 
@@ -122,18 +124,18 @@ export const mediaAPI = {
   updateCategory: (categoryId: number, data: {
     name?: string
     description?: string
-  }): Promise<ApiResponse<{
+  }): Promise<{
     id: number
     name: string
     description?: string
-  }>> => {
+  }> => {
     return request.put(`/media/categories/${categoryId}`, data)
   },
 
   /**
    * 删除分类（管理员）
    */
-  deleteCategory: (categoryId: number): Promise<ApiResponse<void>> => {
+  deleteCategory: (categoryId: number): Promise<{ message: string }> => {
     return request.delete(`/media/categories/${categoryId}`)
   }
 }

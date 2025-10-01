@@ -110,8 +110,8 @@
                 <template #description>
                   <div class="card-description">
                     <div class="stats">
-                      <span><eye-outlined /> {{ formatNumber(item.views) }}</span>
-                      <span><heart-outlined /> {{ formatNumber(item.likes) }}</span>
+                      <span><eye-outlined /> {{ formatNumber(item.view_count) }}</span>
+                      <span><heart-outlined /> {{ formatNumber(item.like_count) }}</span>
                     </div>
                     <div class="file-info">
                       <span class="file-size">{{ formatFileSize(item.file_size) }}</span>
@@ -150,7 +150,7 @@
 
     <!-- 媒体预览模态框 -->
     <a-modal
-      v-model:visible="previewVisible"
+      v-model:open="previewVisible"
       :title="currentPreview?.title"
       :width="800"
       :footer="null"
@@ -160,15 +160,27 @@
         <div class="preview-media">
           <img 
             v-if="currentPreview.media_type === 'image'"
-            :src="currentPreview.file_url"
+            :src="getFullFileUrl(currentPreview.file_url)"
             :alt="currentPreview.title"
             style="width: 100%; height: auto; max-height: 500px; object-fit: contain;"
+            @error="(e: Event) => {
+              console.error('[Gallery.preview] 预览图片加载失败:', getFullFileUrl(currentPreview?.file_url), e)
+            }"
+            @load="() => {
+              console.log('[Gallery.preview] 预览图片加载成功:', getFullFileUrl(currentPreview?.file_url))
+            }"
           />
           <video 
             v-else-if="currentPreview.media_type === 'video'"
-            :src="currentPreview.file_url"
+            :src="getFullFileUrl(currentPreview.file_url)"
             controls
             style="width: 100%; height: auto; max-height: 500px;"
+            @error="(e: Event) => {
+              console.error('[Gallery.preview] 预览视频加载失败:', getFullFileUrl(currentPreview?.file_url), e)
+            }"
+            @loadeddata="() => {
+              console.log('[Gallery.preview] 预览视频加载成功:', getFullFileUrl(currentPreview?.file_url))
+            }"
           />
         </div>
         <div class="preview-info">
@@ -182,7 +194,7 @@
               <template #icon>
                 <heart-outlined />
               </template>
-              点赞 ({{ currentPreview.likes }})
+              点赞 ({{ currentPreview.like_count }})
             </a-button>
             <a-button @click="handleDownload(currentPreview)">
               <template #icon>
@@ -197,7 +209,7 @@
 
     <!-- 上传模态框 -->
     <MediaUpload 
-      v-model:visible="showUploadModal" 
+      v-model:open="showUploadModal" 
       @uploaded="handleUploaded"
     />
   </div>
@@ -228,7 +240,7 @@ import {
 } from '@ant-design/icons-vue'
 import { useMediaStore } from '../stores/media'
 import { useAuthStore } from '../stores/auth'
-import { formatNumber, formatFileSize, formatDuration, formatDate } from '../utils'
+import { formatNumber, formatFileSize, formatDuration, formatDate, getFullFileUrl } from '../utils'
 import type { MediaItem, MediaListParams } from '../types'
 import MediaUpload from '../components/MediaUpload.vue'
 
@@ -240,9 +252,9 @@ const empty = Empty
 const filters = reactive<MediaListParams>({
   page: 1,
   page_size: 12,
-  media_type: '',
+  media_type: undefined,
   is_paid: undefined,
-  search: '',
+  search: undefined,
   sort_by: 'created_at',
   order: 'desc',
 })
@@ -254,7 +266,18 @@ const showUploadModal = ref(false)
 
 // 渲染媒体封面
 const renderMediaCover = (item: MediaItem) => {
-  const coverUrl = item.thumbnail_url || item.file_url
+  const coverPath = item.thumbnail_url || item.file_url
+  const coverUrl = getFullFileUrl(coverPath)
+  
+  console.log('[Gallery.renderMediaCover] 媒体项:', {
+    id: item.id,
+    title: item.title,
+    media_type: item.media_type,
+    file_url: item.file_url,
+    thumbnail_url: item.thumbnail_url,
+    coverPath: coverPath,
+    coverUrl: coverUrl
+  })
   
   if (item.media_type === 'video') {
     return h('div', {
@@ -290,7 +313,13 @@ const renderMediaCover = (item: MediaItem) => {
   return h('img', {
     alt: item.title,
     src: coverUrl,
-    style: { height: '200px', width: '100%', objectFit: 'cover' }
+    style: { height: '200px', width: '100%', objectFit: 'cover' },
+    onError: (e: Event) => {
+      console.error('[Gallery.renderMediaCover] 图片加载失败:', coverUrl, e)
+    },
+    onLoad: () => {
+      console.log('[Gallery.renderMediaCover] 图片加载成功:', coverUrl)
+    }
   })
 }
 
@@ -315,9 +344,11 @@ const handlePageChange = (page: number) => {
 // 加载媒体列表
 const loadMediaList = async () => {
   try {
+    console.log('[Gallery.loadMediaList] 开始加载，筛选条件:', filters)
     await mediaStore.getMediaList(filters)
+    console.log('[Gallery.loadMediaList] 加载完成，mediaItems数量:', mediaStore.mediaItems.length)
   } catch (error) {
-    console.error('Failed to load media list:', error)
+    console.error('[Gallery.loadMediaList] Failed to load media list:', error)
   }
 }
 
@@ -364,6 +395,16 @@ const handleDownload = async (item: MediaItem) => {
 
 // 处理预览
 const handlePreview = (item: MediaItem) => {
+  console.log('[Gallery.handlePreview] 预览媒体项:', {
+    id: item.id,
+    title: item.title,
+    media_type: item.media_type,
+    file_url: item.file_url,
+    thumbnail_url: item.thumbnail_url,
+    is_paid: item.is_paid,
+    isVip: authStore.isVip
+  })
+  
   if (item.is_paid && !authStore.isVip) {
     message.warning('付费内容需要VIP权限查看')
     return
@@ -375,9 +416,11 @@ const handlePreview = (item: MediaItem) => {
 
 // 处理上传完成
 const handleUploaded = (newMedia: MediaItem) => {
+  console.log('[Gallery] 收到上传完成事件:', newMedia)
   message.success('上传成功！')
   showUploadModal.value = false
   // 重新加载列表
+  console.log('[Gallery] 重新加载媒体列表')
   loadMediaList()
 }
 

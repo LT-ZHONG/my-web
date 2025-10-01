@@ -1,6 +1,6 @@
 <template>
   <a-modal
-    :visible="visible"
+    :open="open"
     title="上传媒体文件"
     :width="600"
     :confirm-loading="mediaStore.uploading"
@@ -14,13 +14,13 @@
       ref="formRef"
     >
       <!-- 文件上传 -->
-      <a-form-item label="选择文件" name="file" required>
+      <a-form-item label="选择文件">
         <a-upload-dragger
           v-model:file-list="fileList"
           name="file"
           :multiple="false"
           :before-upload="beforeUpload"
-          :remove="handleRemove"
+          @remove="handleRemove"
           accept="image/*,video/*"
         >
           <p class="ant-upload-drag-icon">
@@ -49,6 +49,7 @@
           placeholder="请输入媒体标题"
           :max-length="100"
           show-count
+          id="form_item_title"
         />
       </a-form-item>
 
@@ -59,6 +60,7 @@
           :rows="3"
           :max-length="500"
           show-count
+          id="form_item_description"
         />
       </a-form-item>
 
@@ -67,12 +69,13 @@
           v-model:value="form.tags" 
           placeholder="请输入标签，用逗号分隔（可选）"
           :max-length="200"
+          id="form_item_tags"
         />
       </a-form-item>
 
       <!-- 价格设置 -->
       <a-form-item label="内容类型" name="is_paid">
-        <a-radio-group v-model:value="form.is_paid">
+        <a-radio-group v-model:value="form.is_paid" id="form_item_is_paid">
           <a-radio :value="false">免费内容</a-radio>
           <a-radio :value="true">付费内容</a-radio>
         </a-radio-group>
@@ -91,6 +94,7 @@
           :max="999"
           :precision="2"
           style="width: 100%"
+          id="form_item_price"
         >
           <template #addonBefore>¥</template>
         </a-input-number>
@@ -144,11 +148,11 @@ import type { MediaUploadData, MediaItem } from '@/types'
 import type { UploadFile } from 'ant-design-vue'
 
 interface Props {
-  visible: boolean
+  open: boolean
 }
 
 interface Emits {
-  (e: 'update:visible', visible: boolean): void
+  (e: 'update:open', open: boolean): void
   (e: 'uploaded', media: MediaItem): void
 }
 
@@ -277,16 +281,28 @@ const handleSubmit = async () => {
   try {
     // 表单验证
     await formRef.value.validate()
+  } catch (validationError) {
+    // 表单验证失败，直接返回
+    console.error('Form validation failed:', validationError)
+    return
+  }
 
+  try {
     // 上传文件
+    console.log('[MediaUpload] 调用上传接口')
     const response = await mediaStore.uploadMedia(selectedFile.value, form)
     
-    if (response.data) {
-      emit('uploaded', response.data)
-      handleCancel()
-    }
+    console.log('[MediaUpload] 上传接口返回:', response)
+    console.log('[MediaUpload] 媒体数据:', response.media)
+    
+    message.success('媒体文件上传成功！')
+    // 传递媒体对象给父组件
+    emit('uploaded', response.media)
+    handleCancel()
   } catch (error) {
-    console.error('Upload failed:', error)
+    // 上传失败
+    console.error('[MediaUpload] Upload failed:', error)
+    message.error('媒体文件上传失败，请重试！')
   }
 }
 
@@ -306,7 +322,7 @@ const handleCancel = () => {
   // 重置表单验证
   formRef.value?.resetFields()
 
-  emit('update:visible', false)
+  emit('update:open', false)
 }
 
 // 监听付费状态变化
@@ -323,9 +339,9 @@ const cleanup = () => {
   }
 }
 
-// 监听visible变化，关闭时清理
-watch(() => props.visible, (visible) => {
-  if (!visible) {
+// 监听open变化，关闭时清理
+watch(() => props.open, (open) => {
+  if (!open) {
     cleanup()
   }
 })

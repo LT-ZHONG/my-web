@@ -59,53 +59,6 @@
    docker run -p 8000:8000 mywebsite-backend
    ```
 
-## 📖 API 文档
-
-### 认证 API
-
-- `POST /api/v1/auth/register` - 用户注册
-- `POST /api/v1/auth/login` - 用户登录
-- `POST /api/v1/auth/refresh` - 刷新令牌
-- `POST /api/v1/auth/change-password` - 修改密码
-- `GET /api/v1/auth/me` - 获取当前用户信息
-
-### 用户 API
-
-- `GET /api/v1/users/me` - 获取个人信息
-- `PUT /api/v1/users/me` - 更新个人信息
-- `GET /api/v1/users/{user_id}` - 获取用户信息
-- `GET /api/v1/users/` - 获取用户列表（管理员）
-
-### 媒体 API
-
-#### 媒体文件管理
-- `GET /api/v1/media/` - 获取媒体列表（支持分页、搜索、过滤）
-- `POST /api/v1/media/upload` - 上传媒体文件（支持图片和视频）
-- `GET /api/v1/media/{media_id}` - 获取媒体详情
-- `PUT /api/v1/media/{media_id}` - 更新媒体信息
-- `DELETE /api/v1/media/{media_id}` - 删除媒体文件
-- `POST /api/v1/media/{media_id}/like` - 点赞/取消点赞
-- `GET /api/v1/media/{media_id}/download` - 下载媒体文件
-- `GET /api/v1/media/stats/overview` - 获取媒体统计信息
-
-#### 媒体分类管理
-- `GET /api/v1/media/categories/` - 获取分类列表
-- `POST /api/v1/media/categories/` - 创建分类（管理员）
-- `GET /api/v1/media/categories/{category_id}` - 获取分类详情
-- `PUT /api/v1/media/categories/{category_id}` - 更新分类（管理员）
-- `DELETE /api/v1/media/categories/{category_id}` - 删除分类（管理员）
-
-### 聊天 API（开发中）
-
-- `GET /api/v1/chat/rooms` - 获取聊天室列表
-- `WebSocket /api/v1/chat/ws` - WebSocket 聊天连接
-
-### 支付 API（开发中）
-
-- `GET /api/v1/payment/plans` - 获取 VIP 套餐
-- `POST /api/v1/payment/orders` - 创建订单
-- `GET /api/v1/payment/orders` - 获取订单列表
-
 ## 🏗️ 项目结构
 
 ```
@@ -183,6 +136,7 @@ backend/
 - 文件上传安全验证
 - SQL 注入防护
 - XSS 防护
+- Pydantic V2
 
 ## 📊 功能特性
 
@@ -211,70 +165,92 @@ backend/
 - [ ] 日志系统
 - [ ] 缓存优化
 
-## 🧪 测试
+## 媒体上传流程分析
 
-```bash
-# 运行测试（开发中）
-pytest
+### 🖼️ 上传界面
+从 `MediaUpload.vue` 组件可以看到：
+- 支持拖拽上传，支持图片（`image/*`）和视频（`video/*`）文件
+- 文件大小限制：**50MB**
+- 支持设置标题、描述、标签、付费价格等信息
+- 提供文件预览功能
 
-# 测试覆盖率
-pytest --cov=.
+### 📁 文件存储位置
+
+根据配置和代码分析，文件上传后的存储结构如下：
+
+```
+项目根目录/
+└── static/
+    └── uploads/           # 主上传目录
+        ├── image/         # 图片文件夹
+        │   └── {用户ID}/  # 按用户ID分类
+        │       ├── abc123.jpg      # 原始文件（重命名后）
+        │       └── thumb_abc123.jpg # 缩略图
+        └── video/         # 视频文件夹
+            └── {用户ID}/  # 按用户ID分类
+                └── def456.mp4
 ```
 
-## 📝 API 使用示例
+### 🔄 具体上传流程
 
-### 用户注册
+1. **前端处理**：
+   ```javascript
+   // 用户在 MediaUpload.vue 中选择文件
+   // 调用 mediaStore.uploadMedia(file, formData)
+   // 发送到 /api/v1/media/upload 端点
+   ```
 
-```bash
-curl -X POST "http://localhost:8000/api/v1/auth/register" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "user@example.com",
-    "username": "testuser",
-    "password": "password123",
-    "confirm_password": "password123",
-    "full_name": "测试用户"
-  }'
+2. **后端处理** (`backend/api/v1/media.py`):
+   - 接收 `UploadFile` 和表单数据
+   - 调用 `MediaService.upload_media()` 处理
+
+3. **文件处理** (`backend/utils/file_utils.py`):
+   ```python
+   # 验证文件类型和大小
+   validate_file_type(file)  # 检查MIME类型
+   validate_file_size(file)  # 检查是否超过50MB
+   
+   # 生成存储路径
+   # static/uploads/{image|video}/{user_id}/
+   upload_path = get_upload_path(file_type, user_id)
+   
+   # 生成唯一文件名
+   filename = generate_filename(file.filename)  # UUID + 扩展名
+   ```
+
+4. **数据库记录**：
+   - 在 `Media` 表中创建记录
+   - 存储文件路径、URL、尺寸、MIME类型等信息
+
+### 📊 文件信息
+
+**支持的格式**：
+- **图片**: JPEG, PNG, GIF, WebP
+- **视频**: MP4, AVI, MOV, WMV
+
+**文件处理**：
+- 生成UUID作为文件名，防止冲突
+- 图片自动生成缩略图（300x300像素）
+- 获取图片尺寸信息
+- 计算文件大小和MIME类型
+
+### 🔗 访问路径
+
+上传成功后，文件可通过以下URL访问：
+```
+http://your-domain/static/uploads/image/123/abc123.jpg     # 原图
+http://your-domain/static/uploads/image/123/thumb_abc123.jpg  # 缩略图
 ```
 
-### 用户登录
+### 💾 存储配置
 
-```bash
-curl -X POST "http://localhost:8000/api/v1/auth/login" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "testuser",
-    "password": "password123"
-  }'
-```
+在 `backend/config.py` 中的关键配置：
+- `UPLOAD_DIR = "static/uploads"`  # 上传目录
+- `MAX_FILE_SIZE = 50MB`  # 最大文件大小
+- 文件类型白名单限制
 
-### 上传媒体文件
-
-```bash
-# 先获取访问令牌
-TOKEN="your_access_token_here"
-
-# 上传图片
-curl -X POST "http://localhost:8000/api/v1/media/upload" \
-  -H "Authorization: Bearer $TOKEN" \
-  -F "file=@/path/to/image.jpg" \
-  -F "title=我的照片" \
-  -F "description=这是一张美丽的照片" \
-  -F "tags=风景,旅行,摄影" \
-  -F "is_paid=false" \
-  -F "price=0.0"
-```
-
-### 获取媒体列表
-
-```bash
-curl -X GET "http://localhost:8000/api/v1/media/?page=1&page_size=20&media_type=image" \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-### 获取媒体统计
-
-```bash
-curl -X GET "http://localhost:8000/api/v1/media/stats/overview" \
-  -H "Authorization: Bearer $TOKEN"
-```
+这样的设计确保了：
+✅ 文件按用户分类存储，便于管理  
+✅ 自动生成缩略图，提升访问速度  
+✅ 使用UUID文件名，避免文件名冲突  
+✅ 严格的文件类型和大小验证，确保安全性

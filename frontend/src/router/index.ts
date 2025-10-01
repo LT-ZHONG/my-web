@@ -13,7 +13,7 @@ const routes: RouteRecordRaw[] = [
     name: 'Home',
     component: Home,
     meta: {
-      title: '首页 - 我的生活',
+      title: '首页 - giffalena',
       requireAuth: false,
     },
   },
@@ -22,7 +22,7 @@ const routes: RouteRecordRaw[] = [
     name: 'Gallery',
     component: Gallery,
     meta: {
-      title: '照片视频 - 我的生活',
+      title: '照片视频 - giffalena',
       requireAuth: false,
     },
   },
@@ -31,7 +31,7 @@ const routes: RouteRecordRaw[] = [
     name: 'Login',
     component: Login,
     meta: {
-      title: '登录 - 我的生活',
+      title: '登录 - giffalena',
       requireAuth: false,
       hideForAuth: true, // 已登录用户不显示
     },
@@ -41,7 +41,7 @@ const routes: RouteRecordRaw[] = [
     name: 'Register',
     component: Register,
     meta: {
-      title: '注册 - 我的生活',
+      title: '注册 - giffalena',
       requireAuth: false,
       hideForAuth: true, // 已登录用户不显示
     },
@@ -51,7 +51,7 @@ const routes: RouteRecordRaw[] = [
     name: 'Profile',
     component: Profile,
     meta: {
-      title: '个人资料 - 我的生活',
+      title: '个人资料 - giffalena',
       requireAuth: true,
     },
   },
@@ -60,7 +60,7 @@ const routes: RouteRecordRaw[] = [
     name: 'Chat',
     component: Chat,
     meta: {
-      title: '聊天 - 我的生活',
+      title: '聊天 - giffalena',
       requireAuth: false,
     },
   },
@@ -69,7 +69,7 @@ const routes: RouteRecordRaw[] = [
     name: 'VIP',
     component: VIP,
     meta: {
-      title: 'VIP会员 - 我的生活',
+      title: 'VIP会员 - giffalena',
       requireAuth: false,
     },
   },

@@ -15,7 +15,6 @@ from config import settings
 from database import engine, create_all_tables
 from api.v1.router import api_router
 from utils.exceptions import CustomHTTPException
-from utils.middleware import RateLimitMiddleware, SecurityHeadersMiddleware
 
 
 @asynccontextmanager
@@ -47,13 +46,9 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_HOSTS,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
-
-# 安全中间件
-app.add_middleware(SecurityHeadersMiddleware)
-app.add_middleware(RateLimitMiddleware)
 
 # 信任的主机中间件
 if not settings.DEBUG:
@@ -65,6 +60,7 @@ if not settings.DEBUG:
 # 静态文件服务
 os.makedirs("static/uploads", exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
 
 # 全局异常处理
 @app.exception_handler(CustomHTTPException)

@@ -82,15 +82,16 @@ export interface MediaItem {
   is_paid: boolean
   price?: number
   tags?: string
-  views: number
-  likes: number
+  status?: 'active' | 'hidden' | 'deleted'
+  view_count: number
+  like_count: number
   file_size: number
   duration?: number
   width?: number
   height?: number
-  uploaded_by: number
+  owner_id: number
   created_at: string
-  updated_at: string
+  updated_at?: string
   user?: UserProfile
 }
 
