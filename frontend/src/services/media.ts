@@ -5,7 +5,6 @@ import type {
   MediaListParams, 
   MediaUpdateData,
   MediaStats,
-  ApiResponse 
 } from '@/types'
 
 export const mediaAPI = {

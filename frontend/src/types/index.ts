@@ -1,25 +1,21 @@
 import type { Component, CSSProperties } from 'vue'
 
-// API响应类型
-export interface ApiResponse<T = any> {
-  success: boolean
-  data?: T
-  message?: string
-  error?: string
-}
-
 // 用户相关类型
 export interface User {
   id: number
   email: string
   username: string
+  full_name?: string
+  nickname?: string
   bio?: string
+  avatar_url?: string
+  phone?: string
   is_active: boolean
   is_admin: boolean
   is_vip: boolean
   vip_expire_at?: string
   created_at: string
-  updated_at: string
+  updated_at?: string
 }
 
 export interface UserProfile {
@@ -65,10 +61,11 @@ export interface RegisterData {
 }
 
 export interface AuthResponse {
-  user: User
   access_token: string
-  refresh_token?: string
+  refresh_token: string
   token_type: string
+  expires_in: number
+  user: User
 }
 
 // 媒体相关类型

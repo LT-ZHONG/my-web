@@ -19,6 +19,8 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # JWT Bearer认证
 security = HTTPBearer()
+# 可选的JWT Bearer认证（不强制要求）
+optional_security = HTTPBearer(auto_error=False)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -170,10 +172,10 @@ def check_permission(user: User, required_role: str) -> bool:
 
 
 async def optional_current_user(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(optional_security),
     db: AsyncSession = Depends(get_db)
 ) -> Optional[User]:
-    """可选的当前用户（用于可选认证的接口）"""
+    """可选的当前用户，游客可以浏览内容，但要执行某些操作时需要登录"""
     if not credentials:
         return None
     

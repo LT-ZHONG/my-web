@@ -45,11 +45,9 @@ export const useUserStore = defineStore('user', () => {
       setLoading(true)
       clearError()
 
-      const response = await userAPI.getProfile()
-      if (response.data) {
-        profile.value = response.data
-      }
-      return response
+      const userProfile = await userAPI.getProfile()
+      profile.value = userProfile
+      return userProfile
     } catch (err: any) {
       const errorMessage = handleApiError(err)
       setError(errorMessage)
@@ -65,11 +63,9 @@ export const useUserStore = defineStore('user', () => {
       setLoading(true)
       clearError()
 
-      const response = await userAPI.updateProfile(data)
-      if (response.data) {
-        profile.value = response.data
-      }
-      return response
+      const userProfile = await userAPI.updateProfile(data)
+      profile.value = userProfile
+      return userProfile
     } catch (err: any) {
       const errorMessage = handleApiError(err)
       setError(errorMessage)
@@ -91,11 +87,9 @@ export const useUserStore = defineStore('user', () => {
       setLoading(true)
       clearError()
 
-      const response = await userAPI.getUserList(params)
-      if (response.data) {
-        users.value = response.data.users
-      }
-      return response
+      const userListResponse = await userAPI.getUserList(params)
+      users.value = userListResponse.users
+      return userListResponse
     } catch (err: any) {
       const errorMessage = handleApiError(err)
       setError(errorMessage)

@@ -16,7 +16,7 @@ from schemas.media import (
     MediaCategoryCreate, MediaCategoryUpdate
 )
 from services.media_service import MediaService, MediaCategoryService
-from utils.auth import get_current_user, get_current_admin_user
+from utils.auth import get_current_user, get_current_admin_user, optional_current_user
 
 router = APIRouter()
 
@@ -36,7 +36,7 @@ async def get_media_list(
     tags: Optional[str] = Query(None, description="标签"),
     sort_by: Optional[str] = Query("created_at", description="排序字段"),
     order: Optional[str] = Query("desc", description="排序方向"),
-    current_user: Optional[User] = Depends(get_current_user),
+    current_user: Optional[User] = Depends(optional_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """获取媒体列表"""
@@ -85,10 +85,10 @@ async def upload_media(
     price: float = Form(0.0, description="价格"),
     is_private: bool = Form(False, description="是否私密"),
     is_featured: bool = Form(False, description="是否精选"),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_admin_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """上传媒体文件"""
+    """上传媒体文件（仅管理员）"""
     print(f"[上传媒体] 用户ID: {current_user.id}, 文件名: {file.filename}")
     print(f"[上传媒体] 标题: {title}, 付费: {is_paid}, 价格: {price}")
     
@@ -124,7 +124,7 @@ async def upload_media(
 @router.get("/{media_id}", response_model=MediaResponse)
 async def get_media_detail(
     media_id: int,
-    current_user: Optional[User] = Depends(get_current_user),
+    current_user: Optional[User] = Depends(optional_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """获取媒体详情"""
@@ -146,10 +146,10 @@ async def get_media_detail(
 async def update_media(
     media_id: int,
     update_data: MediaUpdate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_admin_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """更新媒体信息"""
+    """更新媒体信息（仅管理员）"""
     service = MediaService(db)
     media = await service.update_media(
         media_id, 
@@ -168,10 +168,10 @@ async def update_media(
 @router.delete("/{media_id}")
 async def delete_media(
     media_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_admin_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """删除媒体"""
+    """删除媒体（仅管理员）"""
     service = MediaService(db)
     success = await service.delete_media(
         media_id, 

@@ -3,54 +3,59 @@ import type {
   LoginCredentials, 
   RegisterData, 
   AuthResponse, 
-  User,
-  ApiResponse 
+  User
 } from '@/types'
 
 export const authAPI = {
   /**
    * 用户注册
+   * @returns 直接返回 AuthResponse（包含 token 和用户信息）
    */
-  register: (data: RegisterData): Promise<ApiResponse<AuthResponse>> => {
+  register: (data: RegisterData): Promise<AuthResponse> => {
     return request.post('/auth/register', data)
   },
 
   /**
    * 用户登录
+   * @returns 直接返回 AuthResponse（包含 token 和用户信息）
    */
-  login: (credentials: LoginCredentials): Promise<ApiResponse<AuthResponse>> => {
+  login: (credentials: LoginCredentials): Promise<AuthResponse> => {
     return request.post('/auth/login', credentials)
   },
 
   /**
    * 刷新Token
+   * @returns 直接返回新的 AuthResponse
    */
-  refreshToken: (refresh_token: string): Promise<ApiResponse<{ access_token: string; refresh_token?: string }>> => {
+  refreshToken: (refresh_token: string): Promise<AuthResponse> => {
     return request.post('/auth/refresh', { refresh_token })
   },
 
   /**
    * 获取当前用户信息
+   * @returns 直接返回 User 对象
    */
-  getCurrentUser: (): Promise<ApiResponse<User>> => {
+  getCurrentUser: (): Promise<User> => {
     return request.get('/auth/me')
   },
 
   /**
    * 修改密码
+   * @returns 直接返回消息对象
    */
   changePassword: (data: {
     current_password: string
     new_password: string
     confirm_password: string
-  }): Promise<ApiResponse<void>> => {
+  }): Promise<{ message: string }> => {
     return request.post('/auth/change-password', data)
   },
 
   /**
-   * 注销登录（如果后端有此接口）
+   * 注销登录
+   * @returns 直接返回消息对象
    */
-  logout: (): Promise<ApiResponse<void>> => {
+  logout: (): Promise<{ message: string }> => {
     return request.post('/auth/logout')
   }
 }

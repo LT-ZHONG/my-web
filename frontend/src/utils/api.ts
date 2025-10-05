@@ -1,6 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
 import { storage } from './index'
-import type { ApiResponse } from '@/types'
 
 // API配置
 const API_CONFIG = {
@@ -42,7 +41,7 @@ apiClient.interceptors.request.use(
 
 // 响应拦截器
 apiClient.interceptors.response.use(
-  (response: AxiosResponse<ApiResponse>) => {
+  (response: AxiosResponse) => {
     return response
   },
   async (error) => {
@@ -60,7 +59,7 @@ apiClient.interceptors.response.use(
             { refresh_token: refreshToken }
           )
           
-          const { access_token, refresh_token } = response.data.data
+          const { access_token, refresh_token } = response.data
           tokenManager.setToken(access_token)
           
           if (refresh_token) {
@@ -85,24 +84,24 @@ apiClient.interceptors.response.use(
 
 // 通用API请求方法
 export const request = {
-  get: <T = any>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> =>
-    apiClient.get<ApiResponse<T>>(url, config).then(res => res.data),
+  get: <T = any>(url: string, config?: AxiosRequestConfig): Promise<T> =>
+    apiClient.get<T>(url, config).then(res => res.data),
     
-  post: <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> =>
-    apiClient.post<ApiResponse<T>>(url, data, config).then(res => res.data),
+  post: <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> =>
+    apiClient.post<T>(url, data, config).then(res => res.data),
     
-  put: <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> =>
-    apiClient.put<ApiResponse<T>>(url, data, config).then(res => res.data),
+  put: <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> =>
+    apiClient.put<T>(url, data, config).then(res => res.data),
     
-  delete: <T = any>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> =>
-    apiClient.delete<ApiResponse<T>>(url, config).then(res => res.data),
+  delete: <T = any>(url: string, config?: AxiosRequestConfig): Promise<T> =>
+    apiClient.delete<T>(url, config).then(res => res.data),
     
-  patch: <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> =>
-    apiClient.patch<ApiResponse<T>>(url, data, config).then(res => res.data),
+  patch: <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> =>
+    apiClient.patch<T>(url, data, config).then(res => res.data),
 
   // 文件上传
-  upload: <T = any>(url: string, formData: FormData, onProgress?: (progress: number) => void): Promise<ApiResponse<T>> =>
-    apiClient.post<ApiResponse<T>>(url, formData, {
+  upload: <T = any>(url: string, formData: FormData, onProgress?: (progress: number) => void): Promise<T> =>
+    apiClient.post<T>(url, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       },

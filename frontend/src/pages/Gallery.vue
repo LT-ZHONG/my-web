@@ -5,7 +5,7 @@
       <a-button 
         type="primary" 
         @click="showUploadModal = true"
-        v-if="authStore.isAuthenticated"
+        v-if="authStore.isAdmin"
       >
         <template #icon>
           <plus-outlined />
