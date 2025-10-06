@@ -90,8 +90,7 @@
                 h(HeartOutlined, { 
                   style: { color: '#ff4d4f' },
                   onClick: () => handleLike(item) 
-                }),
-                h(DownloadOutlined, { onClick: () => handleDownload(item) })
+                })
               ]"
               @click="handlePreview(item)"
             >
@@ -196,12 +195,6 @@
               </template>
               点赞 ({{ currentPreview.like_count }})
             </a-button>
-            <a-button @click="handleDownload(currentPreview)">
-              <template #icon>
-                <download-outlined />
-              </template>
-              下载
-            </a-button>
           </div>
         </div>
       </div>
@@ -236,7 +229,6 @@ import {
   PlusOutlined,
   EyeOutlined,
   HeartOutlined,
-  DownloadOutlined,
 } from '@ant-design/icons-vue'
 import { useMediaStore } from '../stores/media'
 import { useAuthStore } from '../stores/auth'
@@ -370,26 +362,6 @@ const handleLike = async (item: MediaItem) => {
     message.success('操作成功')
   } catch (error) {
     console.error('Like failed:', error)
-  }
-}
-
-// 处理下载
-const handleDownload = async (item: MediaItem) => {
-  if (!authStore.isAuthenticated) {
-    message.warning('请先登录')
-    return
-  }
-  
-  if (item.is_paid && !authStore.isVip) {
-    message.warning('付费内容需要VIP权限')
-    return
-  }
-  
-  try {
-    await mediaStore.downloadMedia(item.id, item.title)
-    message.success('下载开始')
-  } catch (error) {
-    console.error('Download failed:', error)
   }
 }
 

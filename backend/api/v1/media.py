@@ -2,10 +2,8 @@
 媒体相关API端点
 """
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query
-from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, List
-import os
 
 from database import get_db
 from models.user import User
@@ -200,43 +198,6 @@ async def toggle_like(
         "is_liked": is_liked,
         "like_count": like_count
     }
-
-
-@router.get("/{media_id}/download")
-async def download_media(
-    media_id: int,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
-):
-    """下载媒体文件"""
-    service = MediaService(db)
-    media = await service.get_media_by_id(
-        media_id,
-        current_user_id=current_user.id,
-        is_admin=current_user.is_admin
-    )
-    
-    if not media:
-        raise HTTPException(status_code=404, detail="媒体不存在")
-    
-    # 检查付费内容权限
-    if media.is_paid and media.owner_id != current_user.id:
-        # 这里应该检查用户是否已购买，简化处理
-        if not current_user.is_vip:
-            raise HTTPException(status_code=403, detail="需要购买该内容或开通VIP")
-    
-    # 增加下载计数
-    media.download_count += 1
-    db.commit()
-    
-    if not os.path.exists(media.file_path):
-        raise HTTPException(status_code=404, detail="文件不存在")
-    
-    return FileResponse(
-        path=media.file_path,
-        filename=media.original_filename or media.filename,
-        media_type=media.mime_type
-    )
 
 
 @router.get("/stats/overview", response_model=MediaStatsResponse)

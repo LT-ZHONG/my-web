@@ -2,13 +2,14 @@
 文件处理工具函数
 """
 import os
+import cv2
 import uuid
 import aiofiles
-from pathlib import Path
-from typing import Optional, Tuple, List
-from fastapi import UploadFile
-from PIL import Image
 import mimetypes
+from PIL import Image
+from pathlib import Path
+from fastapi import UploadFile
+from typing import Tuple, List
 
 from config import settings
 from utils.exceptions import FileUploadError
@@ -70,8 +71,8 @@ async def save_uploaded_file(file: UploadFile, file_path: str) -> bool:
         return False
 
 
-async def create_thumbnail(image_path: str, thumbnail_path: str, size: Tuple[int, int] = (300, 300)) -> bool:
-    """创建缩略图"""
+async def create_image_thumbnail(image_path: str, thumbnail_path: str, size: Tuple[int, int] = (300, 300)) -> bool:
+    """创建图片缩略图"""
     try:
         with Image.open(image_path) as img:
             # 保持纵横比的缩略图
@@ -86,7 +87,43 @@ async def create_thumbnail(image_path: str, thumbnail_path: str, size: Tuple[int
             img.save(thumbnail_path, "JPEG", quality=85, optimize=True)
         return True
     except Exception as e:
-        print(f"创建缩略图失败: {e}")
+        print(f"创建图片缩略图失败: {e}")
+        return False
+
+
+async def create_video_thumbnail(video_path: str, thumbnail_path: str, size: Tuple[int, int] = (300, 300)) -> bool:
+    """创建视频缩略图（提取第一帧）"""
+    try:
+        # 打开视频文件
+        video = cv2.VideoCapture(video_path)
+        
+        # 读取第一帧
+        success, frame = video.read()
+        video.release()
+        
+        if not success or frame is None:
+            print(f"无法读取视频帧: {video_path}")
+            return False
+        
+        # 将 OpenCV 的 BGR 格式转换为 RGB
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        
+        # 转换为 PIL Image
+        img = Image.fromarray(frame_rgb)
+        
+        # 创建缩略图（保持纵横比）
+        img.thumbnail(size, Image.Resampling.LANCZOS)
+        
+        # 保存为 JPEG
+        img.save(thumbnail_path, "JPEG", quality=85, optimize=True)
+        
+        print(f"视频缩略图创建成功: {thumbnail_path}")
+        return True
+        
+    except Exception as e:
+        print(f"创建视频缩略图失败: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 
@@ -159,12 +196,25 @@ async def process_uploaded_file(
     # 获取文件信息
     file_info = get_file_info(file_path)
     
-    # 创建缩略图（仅对图片）
+    # 创建缩略图
     thumbnail_path = None
-    if file_type == "image" and create_thumb:
+    if create_thumb:
         thumbnail_filename = f"thumb_{filename}"
+        # 视频缩略图统一使用 .jpg 扩展名
+        if file_type == "video":
+            thumbnail_filename = f"thumb_{Path(filename).stem}.jpg"
         thumbnail_path = os.path.join(upload_path, thumbnail_filename)
-        await create_thumbnail(file_path, thumbnail_path)
+        
+        if file_type == "image":
+            # 为图片创建缩略图
+            success = await create_image_thumbnail(file_path, thumbnail_path)
+            if not success:
+                thumbnail_path = None
+        elif file_type == "video":
+            # 为视频创建缩略图（提取第一帧）
+            success = await create_video_thumbnail(file_path, thumbnail_path)
+            if not success:
+                thumbnail_path = None
     
     return {
         "filename": filename,

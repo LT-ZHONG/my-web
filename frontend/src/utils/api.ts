@@ -111,23 +111,7 @@ export const request = {
           onProgress(progress)
         }
       }
-    }).then(res => res.data),
-
-  // 下载文件
-  download: (url: string, filename?: string): Promise<void> =>
-    apiClient.get(url, {
-      responseType: 'blob'
-    }).then(response => {
-      const blob = new Blob([response.data])
-      const downloadUrl = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = downloadUrl
-      link.download = filename || 'download'
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(downloadUrl)
-    })
+    }).then(res => res.data)
 }
 
 // 错误处理

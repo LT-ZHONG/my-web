@@ -14,7 +14,7 @@ from schemas.media import (
     MediaCreate, MediaUpdate, MediaListQuery, MediaCategoryCreate, 
     MediaCategoryUpdate, MediaResponse, MediaListResponse, MediaStatsResponse
 )
-from utils.file_utils import process_uploaded_file, get_file_url, delete_file
+from utils.file import process_uploaded_file, get_file_url, delete_file
 from utils.exceptions import FileUploadError
 
 

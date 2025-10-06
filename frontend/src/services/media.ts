@@ -78,13 +78,6 @@ export const mediaAPI = {
   },
 
   /**
-   * 下载媒体文件
-   */
-  downloadMedia: (mediaId: number, filename?: string): Promise<void> => {
-    return request.download(`/media/${mediaId}/download`, filename)
-  },
-
-  /**
    * 获取媒体统计信息
    */
   getMediaStats: (): Promise<MediaStats> => {
