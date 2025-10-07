@@ -14,6 +14,7 @@ export interface User {
   is_admin: boolean
   is_vip: boolean
   vip_expire_at?: string
+  credits: number
   created_at: string
   updated_at?: string
 }
@@ -226,21 +227,78 @@ export interface VIPSubscription {
 export interface PaymentOrder {
   id: string
   userId: string
-  type: 'vip' | 'media'
+  type: 'vip' | 'media' | 'credits'
   itemId: string
   amount: number
   currency: string
   status: 'pending' | 'paid' | 'failed' | 'refunded'
-  paymentMethod: 'wechat' | 'alipay' | 'bank'
+  paymentMethod: 'wechat' | 'alipay' | 'bank' | 'paypal' | 'usdt'
   createdAt: string
   paidAt?: string
 }
 
 export interface PaymentRequest {
-  type: 'vip' | 'media'
+  type: 'vip' | 'media' | 'credits'
   itemId: string
   amount: number
-  paymentMethod: 'wechat' | 'alipay'
+  paymentMethod: 'wechat' | 'alipay' | 'paypal' | 'usdt'
+}
+
+// 积分充值相关
+export interface CreditRechargeRequest {
+  amount: number  // 美元金额
+  payment_method: 'paypal' | 'usdt'
+}
+
+export interface CreditRechargeResponse {
+  order_id: number
+  order_no: string
+  amount: number
+  credits: number  // 对应的积分数量
+  payment_method: 'paypal' | 'usdt'
+  payment_info: {
+    payment_url?: string  // PayPal支付链接
+    address?: string      // USDT地址
+    qr_code?: string      // USDT二维码
+    amount: number
+    note: string
+    network?: string      // USDT网络
+  }
+  message: string
+}
+
+export interface CreditTransaction {
+  id: number
+  user_id: number
+  amount: number  // 积分变动(正数为增加,负数为减少)
+  balance_before: number
+  balance_after: number
+  transaction_type: 'recharge' | 'consume' | 'refund' | 'admin'
+  description?: string
+  order_id?: number
+  media_id?: number
+  created_at: string
+}
+
+export interface CreditBalance {
+  user_id: number
+  username: string
+  credits: number
+}
+
+// 媒体访问权限
+export interface MediaAccessResponse {
+  has_access: boolean
+  is_paid: boolean
+  price?: number
+  required_credits?: number
+  user_credits?: number
+  has_enough_credits?: boolean
+  reason: string
+  file_url?: string
+  message?: string
+  credits_used?: number
+  credits_remaining?: number
 }
 
 // 文件上传相关类型

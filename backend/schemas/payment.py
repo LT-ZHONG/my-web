@@ -189,3 +189,52 @@ class RefundResponse(BaseModel):
     amount: float
     status: str
     message: str
+
+
+class CreditRechargeRequest(BaseModel):
+    """积分充值请求模式"""
+    amount: float = Field(..., gt=0, description="充值金额(美元)")
+    payment_method: PaymentMethod = Field(..., description="支付方式(paypal或usdt)")
+    
+    @validator('payment_method')
+    def validate_payment_method(cls, v):
+        if v not in [PaymentMethod.PAYPAL, PaymentMethod.USDT]:
+            raise ValueError('积分充值仅支持PayPal或USDT支付')
+        return v
+
+
+class CreditRechargeResponse(BaseModel):
+    """积分充值响应模式"""
+    order_id: int
+    order_no: str
+    amount: float
+    credits: int  # 对应的积分数量 (amount * 10)
+    payment_method: PaymentMethod
+    payment_info: Dict[str, Any]  # 支付信息(PayPal链接或USDT地址)
+    message: str
+
+
+class CreditTransactionResponse(BaseModel):
+    """积分交易记录响应模式"""
+    id: int
+    user_id: int
+    amount: int
+    balance_before: int
+    balance_after: int
+    transaction_type: str
+    description: Optional[str]
+    order_id: Optional[int]
+    media_id: Optional[int]
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class CreditTransactionListResponse(BaseModel):
+    """积分交易记录列表响应"""
+    transactions: List[CreditTransactionResponse]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int

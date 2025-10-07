@@ -287,3 +287,186 @@ async def delete_category(
         raise HTTPException(status_code=404, detail="分类不存在")
     
     return {"message": "分类删除成功"}
+
+
+@router.post("/{media_id}/access")
+async def access_paid_media(
+    media_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    访问付费媒体内容
+    需要扣除积分,价格字段转换为积分(price * 10)
+    """
+    from sqlalchemy import select
+    from models.media import Media, MediaPurchase
+    from models.payment import CreditTransaction
+
+    # 查询媒体
+    result = await db.execute(select(Media).where(Media.id == media_id))
+    media = result.scalar_one_or_none()
+    
+    if not media:
+        raise HTTPException(status_code=404, detail="媒体不存在")
+    
+    # 如果不是付费内容,直接返回访问权限
+    if not media.is_paid:
+        return {
+            "message": "免费内容，无需支付",
+            "media_id": media_id,
+            "has_access": True,
+            "file_url": media.file_url
+        }
+    
+    # 如果是管理员或者是媒体所有者,直接返回
+    if current_user.is_admin or media.owner_id == current_user.id:
+        return {
+            "message": "管理员或所有者，无需支付",
+            "media_id": media_id,
+            "has_access": True,
+            "file_url": media.file_url
+        }
+    
+    # 检查用户是否已经购买过
+    result = await db.execute(
+        select(MediaPurchase).where(
+            MediaPurchase.user_id == current_user.id,
+            MediaPurchase.media_id == media_id
+        )
+    )
+    existing_purchase = result.scalar_one_or_none()
+    
+    if existing_purchase:
+        return {
+            "message": "您已购买过此内容",
+            "media_id": media_id,
+            "has_access": True,
+            "file_url": media.file_url
+        }
+    
+    # 计算需要的积分 (价格转换为积分, price字段以美元为单位, 1美元=10积分)
+    required_credits = int(media.price * 10)
+    
+    # 检查用户积分是否足够
+    if current_user.credits < required_credits:
+        raise HTTPException(
+            status_code=402,
+            detail=f"积分不足。需要 {required_credits} 积分，当前余额 {current_user.credits} 积分"
+        )
+    
+    # 扣除积分
+    balance_before = current_user.credits
+    current_user.credits -= required_credits
+    
+    # 创建购买记录
+    purchase = MediaPurchase(
+        user_id=current_user.id,
+        media_id=media_id,
+        price=media.price
+    )
+    
+    # 创建积分交易记录
+    transaction = CreditTransaction(
+        user_id=current_user.id,
+        amount=-required_credits,
+        balance_before=balance_before,
+        balance_after=current_user.credits,
+        transaction_type="consume",
+        description=f"查看付费内容: {media.title or media.filename}",
+        media_id=media_id
+    )
+    
+    db.add(purchase)
+    db.add(transaction)
+    
+    # 增加查看次数
+    media.view_count += 1
+    
+    await db.commit()
+    
+    return {
+        "message": f"成功扣除 {required_credits} 积分",
+        "media_id": media_id,
+        "has_access": True,
+        "file_url": media.file_url,
+        "credits_used": required_credits,
+        "credits_remaining": current_user.credits
+    }
+
+
+@router.get("/{media_id}/check-access")
+async def check_media_access(
+    media_id: int,
+    current_user: Optional[User] = Depends(optional_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    检查用户是否有权访问某个媒体内容
+    """
+    from sqlalchemy import select
+    from models.media import Media, MediaPurchase
+    
+    # 查询媒体
+    result = await db.execute(select(Media).where(Media.id == media_id))
+    media = result.scalar_one_or_none()
+    
+    if not media:
+        raise HTTPException(status_code=404, detail="媒体不存在")
+    
+    # 如果不是付费内容
+    if not media.is_paid:
+        return {
+            "has_access": True,
+            "is_paid": False,
+            "reason": "免费内容"
+        }
+    
+    # 如果用户未登录
+    if not current_user:
+        required_credits = int(media.price * 10)
+        return {
+            "has_access": False,
+            "is_paid": True,
+            "price": media.price,
+            "required_credits": required_credits,
+            "reason": "需要登录"
+        }
+    
+    # 如果是管理员或所有者
+    if current_user.is_admin or media.owner_id == current_user.id:
+        return {
+            "has_access": True,
+            "is_paid": True,
+            "reason": "管理员或所有者"
+        }
+    
+    # 检查是否已购买
+    result = await db.execute(
+        select(MediaPurchase).where(
+            MediaPurchase.user_id == current_user.id,
+            MediaPurchase.media_id == media_id
+        )
+    )
+    purchase = result.scalar_one_or_none()
+    
+    if purchase:
+        return {
+            "has_access": True,
+            "is_paid": True,
+            "reason": "已购买"
+        }
+    
+    # 需要购买
+    required_credits = int(media.price * 10)
+    has_enough_credits = current_user.credits >= required_credits
+    
+    return {
+        "has_access": False,
+        "is_paid": True,
+        "price": media.price,
+        "required_credits": required_credits,
+        "user_credits": current_user.credits,
+        "has_enough_credits": has_enough_credits,
+        "reason": "需要购买"
+    }

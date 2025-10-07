@@ -59,7 +59,10 @@ class User(Base):
     # 统计信息
     login_count = Column(Integer, default=0, comment="登录次数")
     media_count = Column(Integer, default=0, comment="媒体文件数量")
-    
+
+    # 积分
+    credits = Column(Integer, default=0, comment="用户积分余额")
+
     # 关联关系
     media_files = relationship("Media", back_populates="owner", cascade="all, delete-orphan")
     chat_messages = relationship("ChatMessage", back_populates="sender")
@@ -97,5 +100,6 @@ class User(Base):
             "is_admin": self.is_admin,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "last_login_at": self.last_login_at.isoformat() if self.last_login_at else None,
-            "media_count": self.media_count
+            "media_count": self.media_count,
+            "credits": self.credits
         }

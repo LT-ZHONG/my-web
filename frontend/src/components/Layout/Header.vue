@@ -165,7 +165,7 @@ import {
   HomeOutlined,
   PictureOutlined,
   MessageOutlined,
-  CrownOutlined,
+  DollarOutlined,
   UserOutlined,
   LoginOutlined,
   LogoutOutlined,
@@ -173,7 +173,7 @@ import {
   MenuOutlined,
 } from '@ant-design/icons-vue'
 import type { MenuProps } from 'ant-design-vue'
-import { useAuthStore } from '../../stores/auth'
+import { useAuthStore } from '@/stores'
 
 const router = useRouter()
 const route = useRoute()
@@ -200,9 +200,9 @@ const navItems = computed<MenuProps['items']>(() => [
     label: '聊天',
   },
   {
-    key: '/vip',
-    icon: h(CrownOutlined),
-    label: 'VIP会员',
+    key: '/recharge',
+    icon: h(DollarOutlined),
+    label: '充值',
   },
 ])
 

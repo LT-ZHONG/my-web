@@ -58,6 +58,7 @@ class UserResponse(UserBase):
     created_at: datetime
     last_login_at: Optional[datetime]
     media_count: int
+    credits: int
     
     class Config:
         from_attributes = True

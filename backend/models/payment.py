@@ -14,6 +14,8 @@ class PaymentMethod(str, enum.Enum):
     WECHAT = "wechat"
     ALIPAY = "alipay"
     BANK_CARD = "bank_card"
+    PAYPAL = "paypal"
+    USDT = "usdt"
 
 
 class OrderStatus(str, enum.Enum):
@@ -30,6 +32,7 @@ class OrderType(str, enum.Enum):
     VIP = "vip"              # VIP会员
     MEDIA = "media"          # 媒体内容
     CATEGORY = "category"    # 分类内容
+    CREDITS = "credits"      # 积分充值
 
 
 class VIPPlan(Base):
@@ -180,3 +183,50 @@ class PaymentLog(Base):
     
     def __repr__(self):
         return f"<PaymentLog(id={self.id}, order_id={self.order_id}, is_success={self.is_success})>"
+
+
+class CreditTransaction(Base):
+    """积分交易记录模型"""
+    __tablename__ = "credit_transactions"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, comment="用户ID")
+    
+    # 交易信息
+    amount = Column(Integer, nullable=False, comment="积分变动数量(正数为增加，负数为减少)")
+    balance_before = Column(Integer, nullable=False, comment="交易前余额")
+    balance_after = Column(Integer, nullable=False, comment="交易后余额")
+    
+    # 交易类型和描述
+    transaction_type = Column(String(50), nullable=False, comment="交易类型(recharge/consume/refund/admin)")
+    description = Column(Text, comment="交易描述")
+    
+    # 关联订单或媒体
+    order_id = Column(Integer, ForeignKey("orders.id"), comment="关联订单ID")
+    media_id = Column(Integer, ForeignKey("media.id"), comment="关联媒体ID")
+    
+    # 时间戳
+    created_at = Column(DateTime, server_default=func.now(), comment="创建时间")
+    
+    # 关联关系
+    user = relationship("User")
+    order = relationship("Order")
+    media = relationship("Media")
+    
+    def __repr__(self):
+        return f"<CreditTransaction(id={self.id}, user_id={self.user_id}, amount={self.amount})>"
+    
+    def to_dict(self) -> dict:
+        """转换为字典"""
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "amount": self.amount,
+            "balance_before": self.balance_before,
+            "balance_after": self.balance_after,
+            "transaction_type": self.transaction_type,
+            "description": self.description,
+            "order_id": self.order_id,
+            "media_id": self.media_id,
+            "created_at": self.created_at.isoformat() if self.created_at else None
+        }
