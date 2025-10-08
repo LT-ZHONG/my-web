@@ -44,7 +44,6 @@ class ChatMessageBase(BaseModel):
     """聊天消息基础模式"""
     content: str = Field(..., max_length=1000)
     message_type: str = Field("text", pattern="^(text|image|emoji|system)$")
-    metadata: Optional[Dict[str, Any]] = None
 
 
 class ChatMessageCreate(ChatMessageBase):
@@ -124,7 +123,6 @@ class WSChatMessage(BaseModel):
     content: str
     message_type: str = "text"
     room_id: int
-    metadata: Optional[Dict[str, Any]] = None
 
 
 class WSTypingIndicator(BaseModel):

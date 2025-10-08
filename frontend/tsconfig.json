@@ -25,7 +25,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
-    }
+    },
+    "allowSyntheticDefaultImports": true
   },
   "include": ["src", "vite.config.ts", "*.vue", "**/*.vue"],
   "references": [{ "path": "./tsconfig.node.json" }],

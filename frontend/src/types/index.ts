@@ -165,6 +165,47 @@ export interface OnlineUser {
   last_seen_at?: string
 }
 
+// 管理员信息
+export interface AdminInfo {
+  id: number
+  username: string
+  nickname?: string
+  avatar_url?: string
+}
+
+// 用户信息（聊天列表）
+export interface ChatUserInfo {
+  id: number
+  username: string
+  nickname?: string
+  avatar_url?: string
+}
+
+// 私聊房间响应
+export interface PrivateRoomResponse {
+  room_id: number
+  room_name: string
+  admin_info: AdminInfo
+}
+
+// 管理员聊天列表项
+export interface AdminChatListItem {
+  user_id: number
+  username: string
+  nickname?: string
+  avatar_url?: string
+  room_id: number
+  last_message?: string
+  last_message_time?: string
+  unread_count: number
+}
+
+// 管理员开始聊天响应
+export interface StartChatResponse {
+  room_id: number
+  user_info: ChatUserInfo
+}
+
 // WebSocket消息类型
 export interface WSMessage {
   type: 'join_room' | 'leave_room' | 'send_message' | 'typing'
@@ -175,7 +216,6 @@ export interface WSChatMessage {
   content: string
   message_type: 'text' | 'image' | 'emoji'
   room_id: number
-  metadata?: Record<string, any>
 }
 
 export interface WSJoinRoom {

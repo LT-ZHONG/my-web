@@ -156,5 +156,3 @@ export const handleApiError = (error: any): string => {
 
 // 别名导出，方便使用
 export const api = request
-
-export default apiClient

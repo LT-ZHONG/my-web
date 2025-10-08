@@ -54,9 +54,6 @@ class ChatMessage(Base):
     is_deleted = Column(Boolean, default=False, comment="是否已删除")
     is_system = Column(Boolean, default=False, comment="是否为系统消息")
     
-    # 附加数据
-    # metadata = Column(JSON, comment="附加元数据")
-    
     # 时间戳
     created_at = Column(DateTime, server_default=func.now(), comment="创建时间")
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), comment="更新时间")
@@ -78,7 +75,6 @@ class ChatMessage(Base):
             "sender_id": self.sender_id,
             "is_deleted": self.is_deleted,
             "is_system": self.is_system,
-            # "metadata": self.metadata,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None
         }

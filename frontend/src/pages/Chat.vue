@@ -76,6 +76,15 @@
                 {{ formatTime(msg.created_at) }}
               </div>
             </div>
+            
+            <div class="message-avatar" v-if="isOwnMessage(msg)">
+              <a-avatar 
+                :alt="authStore.user?.username"
+                size="small"
+              >
+                {{ authStore.user?.username?.charAt(0).toUpperCase() }}
+              </a-avatar>
+            </div>
           </div>
           
           <!-- 正在输入指示器 -->
@@ -188,6 +197,15 @@
                     {{ formatTime(msg.created_at) }}
                   </div>
                 </div>
+                
+                <div class="message-avatar" v-if="isOwnMessage(msg)">
+                  <a-avatar 
+                    :alt="authStore.user?.username"
+                    size="small"
+                  >
+                    {{ authStore.user?.username?.charAt(0).toUpperCase() }}
+                  </a-avatar>
+                </div>
               </div>
               
               <!-- 正在输入指示器 -->
@@ -233,34 +251,31 @@
 
 <script setup lang="ts">
 import { ref, h, onMounted, onUnmounted, nextTick, computed, watch } from 'vue'
+import { storeToRefs } from 'pinia'
 import { 
-  Typography, 
-  Input as AInput, 
+  Input as AInput,
   Button as AButton, 
   Row as ARow,
   Col as ACol,
   Card as ACard,
   Avatar as AAvatar,
-  AvatarGroup as AAvatarGroup,
   Badge as ABadge,
   Tag as ATag,
   Alert as AAlert,
   Empty as AEmpty,
   Spin as ASpin,
   Tooltip as ATooltip,
-  Icon as AIcon,
   message
 } from 'ant-design-vue'
 import { 
   SendOutlined, 
-  UserOutlined, 
-  CheckCircleOutlined, 
+  CheckCircleOutlined,
   CloseCircleOutlined 
 } from '@ant-design/icons-vue'
 import dayjs from 'dayjs'
-import { useChatStore } from '../stores/chat'
-import { useAuthStore } from '../stores/auth'
-import type { ChatMessage, OnlineUser } from '../types'
+import { useChatStore } from '@/stores'
+import { useAuthStore } from '@/stores'
+import type { ChatMessage, AdminInfo, AdminChatListItem, PrivateRoomResponse } from '@/types'
 
 // Store
 const chatStore = useChatStore()
@@ -271,11 +286,11 @@ const newMessage = ref('')
 const sending = ref(false)
 const messagesContainer = ref<HTMLElement>()
 const typingTimer = ref<NodeJS.Timeout>()
-const adminInfo = ref<any>(null)
-const adminChatList = ref<any[]>([])
-const currentChatUser = ref<any>(null)
+const adminInfo = ref<AdminInfo | null>(null)
+const adminChatList = ref<AdminChatListItem[]>([])
+const currentChatUser = ref<AdminChatListItem | null>(null)
 
-// 计算属性
+// 使用 storeToRefs 保持响应式
 const {
   messages,
   onlineUsers,
@@ -284,15 +299,16 @@ const {
   error,
   reconnectAttempts,
   typing
-} = chatStore
+} = storeToRefs(chatStore)
 
+// Store 方法（不需要使用 storeToRefs）
 const {
   clearError
 } = chatStore
 
 // 获取正在输入的用户信息
 const typingUsers = computed(() => {
-  return onlineUsers.filter(user => typing.includes(user.user_id))
+  return onlineUsers.value.filter(user => typing.value.includes(user.user_id))
 })
 
 // 判断是否为自己的消息
@@ -306,11 +322,11 @@ const handleSendMessage = async () => {
   
   try {
     sending.value = true
-    await chatStore.sendMessage(newMessage.value.trim())
+    chatStore.sendMessage(newMessage.value.trim())
     newMessage.value = ''
     
     // 滚动到底部
-    nextTick(() => {
+    await nextTick(() => {
       scrollToBottom()
     })
   } catch (error) {
@@ -373,7 +389,7 @@ const formatLastMessageTime = (dateString: string) => {
 }
 
 // 切换到指定用户聊天
-const switchToUser = async (chatUser: any) => {
+const switchToUser = async (chatUser: AdminChatListItem) => {
   try {
     currentChatUser.value = chatUser
     
@@ -386,10 +402,10 @@ const switchToUser = async (chatUser: any) => {
       nickname: authStore.user?.nickname || authStore.user?.full_name
     }
     
-    await chatStore.connect(authStore.token || '', chatUser.room_id, userData)
+    chatStore.connect(authStore.token || '', chatUser.room_id, userData)
     
     // 滚动到底部
-    nextTick(() => {
+    await nextTick(() => {
       scrollToBottom()
     })
   } catch (error) {
@@ -402,7 +418,20 @@ const switchToUser = async (chatUser: any) => {
 const initializeUserChat = async () => {
   try {
     // 获取私聊房间
-    const roomData = await chatStore.fetchPrivateRoom()
+    const roomData: PrivateRoomResponse = await chatStore.fetchPrivateRoom()
+
+    if (!roomData) {
+      console.error('[Chat Page] roomData 为空!')
+      message.error('获取聊天房间失败：数据为空')
+      return
+    }
+    
+    if (!roomData.admin_info) {
+      console.error('[Chat Page] roomData.admin_info 为空!', '完整数据:', roomData)
+      message.error('获取管理员信息失败')
+      return
+    }
+    
     adminInfo.value = roomData.admin_info
     
     // 获取历史消息
@@ -413,15 +442,17 @@ const initializeUserChat = async () => {
       username: authStore.user?.username,
       nickname: authStore.user?.nickname || authStore.user?.full_name
     }
+    console.log('[Chat Page] 开始连接 WebSocket, userData:', userData)
     
-    await chatStore.connect(authStore.token || '', roomData.room_id, userData)
+    chatStore.connect(authStore.token || '', roomData.room_id, userData)
     
     // 滚动到底部
-    nextTick(() => {
+    await nextTick(() => {
       scrollToBottom()
     })
   } catch (error) {
-    console.error('初始化用户聊天失败:', error)
+    console.error('[Chat Page] 初始化用户聊天失败:', error)
+    console.error('[Chat Page] 错误堆栈:', error instanceof Error ? error.stack : '无堆栈信息')
     message.error('连接聊天服务失败')
   }
 }
@@ -664,10 +695,6 @@ onUnmounted(() => {
 
 .message.own-message {
   justify-content: flex-end;
-}
-
-.message.own-message .message-avatar {
-  display: none;
 }
 
 .message-avatar {

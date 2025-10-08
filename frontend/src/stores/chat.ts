@@ -1,7 +1,7 @@
-import { defineStore } from 'pinia'
-import { ref } from 'vue'
-import type { ChatMessage, OnlineUser, ChatRoom, WSMessage, WSChatMessage, WSJoinRoom } from '../types'
-import { api } from '../utils/api'
+import {defineStore} from 'pinia'
+import {ref} from 'vue'
+import type {ChatMessage, ChatRoom, OnlineUser, WSMessage} from '@/types'
+import {api} from '../utils/api'
 
 export const useChatStore = defineStore('chat', () => {
   // 状态
@@ -40,63 +40,68 @@ export const useChatStore = defineStore('chat', () => {
   // 连接WebSocket
   const connect = (token: string, roomId: number = 1, userData?: any) => {
     if (websocket.value && connected.value) {
+      console.log('[Chat Store] WebSocket 已连接，跳过重复连接')
       return
     }
 
     try {
       const wsUrl = getWebSocketUrl(token, roomId)
+
       websocket.value = new WebSocket(wsUrl)
 
       websocket.value.onopen = () => {
         connected.value = true
         reconnectAttempts.value = 0
         clearError()
-        console.log('WebSocket连接成功')
-
-        // 加入房间
-        const joinMessage: WSMessage = {
-          type: 'join_room',
-          data: {
-            room_id: roomId,
-            user: userData || {}
-          }
-        }
-        sendWebSocketMessage(joinMessage)
       }
 
-      websocket.value.onclose = () => {
+      websocket.value.onclose = (event) => {
         connected.value = false
-        console.log('WebSocket连接关闭')
+        console.log('[Chat Store] 关闭事件:', {
+          code: event.code,
+          reason: event.reason,
+          wasClean: event.wasClean
+        })
         
         // 自动重连
         if (reconnectAttempts.value < maxReconnectAttempts) {
+          const delay = 3000 * reconnectAttempts.value
+          console.log(`[Chat Store] 将在 ${delay}ms 后重连 (${reconnectAttempts.value + 1}/${maxReconnectAttempts})`)
           setTimeout(() => {
             reconnectAttempts.value++
-            console.log(`尝试重连 ${reconnectAttempts.value}/${maxReconnectAttempts}`)
+            console.log(`[Chat Store] 尝试重连 ${reconnectAttempts.value}/${maxReconnectAttempts}`)
             connect(token, roomId, userData)
-          }, 3000 * reconnectAttempts.value)
+          }, delay)
         } else {
+          console.error('[Chat Store] 已达到最大重连次数，停止重连')
           setError('连接已断开，请刷新页面重试')
         }
       }
 
       websocket.value.onerror = (event) => {
-        console.error('WebSocket错误:', event)
+        console.error('[Chat Store] ❌ WebSocket 错误:', event)
+        console.error('[Chat Store] 错误详情:', {
+          type: event.type,
+          target: event.target
+        })
         setError('连接失败')
       }
 
       websocket.value.onmessage = (event) => {
         try {
           const message = JSON.parse(event.data)
+          console.log('[Chat Store] 解析后的消息:', message)
           handleWebSocketMessage(message)
         } catch (error) {
-          console.error('解析消息失败:', error)
+          console.error('[Chat Store] 解析消息失败:', error)
+          console.error('[Chat Store] 原始数据:', event.data)
         }
       }
 
       currentRoom.value = roomId
     } catch (error) {
-      console.error('创建WebSocket连接失败:', error)
+      console.error('[Chat Store] 创建 WebSocket 连接失败:', error)
+      console.error('[Chat Store] 错误堆栈:', error instanceof Error ? error.stack : '无堆栈信息')
       setError('连接失败')
     }
   }
@@ -278,16 +283,17 @@ export const useChatStore = defineStore('chat', () => {
         params.append('before_id', beforeId.toString())
       }
 
-      const response = await api.get(`/chat/rooms/${roomId}/messages?${params}`)
-      
+      const messagesData = await api.get(`/chat/rooms/${roomId}/messages?${params}`)
+
       if (page === 1) {
-        messages.value = response.data
+        messages.value = messagesData
       } else {
-        messages.value.unshift(...response.data)
+        messages.value.unshift(...messagesData)
       }
 
-      return response.data
+      return messagesData
     } catch (err: any) {
+      console.error('[Chat Store] 获取历史消息失败:', err)
       setError(err.response?.data?.detail || err.message || '获取消息失败')
       throw err
     } finally {
@@ -301,9 +307,12 @@ export const useChatStore = defineStore('chat', () => {
       setLoading(true)
       clearError()
 
-      const response = await api.get('/chat/private-room')
-      return response.data
+      const roomData = await api.get('/chat/private-room')
+      console.log('[Chat Store] 私聊房间数据:', roomData)
+
+      return roomData
     } catch (err: any) {
+      console.error('[Chat Store] 获取私聊房间失败:', err)
       setError(err.response?.data?.detail || err.message || '获取私聊房间失败')
       throw err
     } finally {
@@ -317,8 +326,7 @@ export const useChatStore = defineStore('chat', () => {
       setLoading(true)
       clearError()
 
-      const response = await api.get('/chat/admin/chat-list')
-      return response.data
+      return await api.get('/chat/admin/chat-list')
     } catch (err: any) {
       setError(err.response?.data?.detail || err.message || '获取聊天列表失败')
       throw err
@@ -333,8 +341,7 @@ export const useChatStore = defineStore('chat', () => {
       setLoading(true)
       clearError()
 
-      const response = await api.post(`/chat/admin/start-chat/${userId}`)
-      return response.data
+      return await api.post(`/chat/admin/start-chat/${userId}`)
     } catch (err: any) {
       setError(err.response?.data?.detail || err.message || '开始聊天失败')
       throw err
@@ -346,9 +353,9 @@ export const useChatStore = defineStore('chat', () => {
   // 获取在线用户
   const fetchOnlineUsers = async (roomId: number) => {
     try {
-      const response = await api.get(`/chat/rooms/${roomId}/online-users`)
-      onlineUsers.value = response.data
-      return response.data
+      const users = await api.get(`/chat/rooms/${roomId}/online-users`)
+      onlineUsers.value = users
+      return users
     } catch (err: any) {
       setError(err.response?.data?.detail || err.message || '获取在线用户失败')
       throw err

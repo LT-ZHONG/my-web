@@ -308,17 +308,6 @@ export const copyToClipboard = async (text: string): Promise<boolean> => {
   }
 }
 
-// 下载文件
-export const downloadFile = (url: string, filename: string): void => {
-  const link = document.createElement('a')
-  link.href = url
-  link.download = filename
-  link.style.display = 'none'
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-}
-
 // 获取设备信息
 export const getDeviceInfo = () => {
   const userAgent = navigator.userAgent
@@ -361,9 +350,9 @@ export const getFullFileUrl = (path: string | null | undefined): string => {
   const fullUrl = `${backendBaseUrl}${normalizedPath}`
   
   console.log('[getFullFileUrl] 路径转换:', {
-    原始路径: path,
-    后端基础URL: backendBaseUrl,
-    完整URL: fullUrl
+    'original path': path,
+    'Backend Basic URL': backendBaseUrl,
+    'Complete URL': fullUrl
   })
   
   return fullUrl

@@ -11,7 +11,7 @@ from database import get_db
 from utils.auth import get_current_user, verify_token
 from utils.exceptions import AuthenticationError
 from models.user import User
-from models.chat import ChatRoom, ChatMessage
+from models.chat import ChatRoom
 from schemas.chat import (
     ChatRoomResponse, ChatMessageResponse, ChatMessageListResponse,
     ChatRoomCreate, OnlineUserResponse, WSMessage
@@ -28,8 +28,14 @@ async def get_or_create_private_room(
     current_user: User = Depends(get_current_user)
 ):
     """获取或创建用户的私聊房间"""
+    import logging
+    logger = logging.getLogger(__name__)
+    
     try:
+        logger.info(f"[私聊房间] 用户 {current_user.id} ({current_user.username}) 请求私聊房间")
+        
         if current_user.is_admin:
+            logger.warning(f"[私聊房间] 管理员 {current_user.id} 尝试访问普通用户私聊接口")
             raise HTTPException(status_code=400, detail="管理员请使用管理员聊天接口")
             
         # 获取任一管理员
@@ -40,12 +46,16 @@ async def get_or_create_private_room(
         admin = admin_result.scalar_one_or_none()
         
         if not admin:
+            logger.error("[私聊房间] 系统中没有管理员账户")
             raise HTTPException(status_code=404, detail="没有找到管理员")
+        
+        logger.info(f"[私聊房间] 找到管理员: {admin.id} ({admin.username})")
             
         # 获取或创建私聊房间
         room = await chat_service.get_or_create_private_room(session, current_user.id, admin.id)
+        logger.info(f"[私聊房间] 获取/创建房间成功: room_id={room.id}, room_name={room.name}")
         
-        return {
+        response_data = {
             "room_id": room.id,
             "room_name": room.name,
             "admin_info": {
@@ -55,7 +65,13 @@ async def get_or_create_private_room(
                 "avatar_url": admin.avatar_url
             }
         }
+        logger.info(f"[私聊房间] 返回响应数据: {response_data}")
+        
+        return response_data
+    except HTTPException:
+        raise
     except Exception as e:
+        logger.error(f"[私聊房间] 获取私聊房间失败: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"获取私聊房间失败: {str(e)}")
 
 
@@ -120,12 +136,18 @@ async def get_room_messages(
     current_user: User = Depends(get_current_user)
 ):
     """获取房间消息历史"""
+    import logging
+    logger = logging.getLogger(__name__)
+    
     try:
+        logger.info(f"[历史消息] 用户 {current_user.id} 请求房间 {room_id} 的消息, page={page}, page_size={page_size}, before_id={before_id}")
         messages = await chat_service.get_room_messages(
             session, room_id, page, page_size, before_id
         )
+        logger.info(f"[历史消息] 返回 {len(messages)} 条消息")
         return messages
     except Exception as e:
+        logger.error(f"[历史消息] 获取消息失败: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"获取消息失败: {str(e)}")
 
 
@@ -176,20 +198,30 @@ async def websocket_endpoint(
     room_id: int = Query(1, description="房间ID")
 ):
     """WebSocket聊天端点"""
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    logger.info(f"[WebSocket] 收到连接请求, room_id={room_id}, token={'已提供' if token else '未提供'}")
+    
     # 验证token
     if not token:
+        logger.warning("[WebSocket] 拒绝连接: 缺少token")
         await websocket.close(code=4001, reason="需要认证token")
         return
         
     try:
+        logger.info("[WebSocket] 开始验证token...")
         payload = verify_token(token, "access")
         user_id = payload.get("sub")
         if not user_id:
+            logger.warning("[WebSocket] token无效: 缺少用户ID")
             await websocket.close(code=4001, reason="无效的token")
             return
             
         user_id = int(user_id)
-    except (AuthenticationError, ValueError, Exception):
+        logger.info(f"[WebSocket] Token验证成功, user_id={user_id}")
+    except (AuthenticationError, ValueError, Exception) as e:
+        logger.error(f"[WebSocket] Token验证失败: {str(e)}", exc_info=True)
         await websocket.close(code=4001, reason="token验证失败")
         return
     
@@ -198,20 +230,28 @@ async def websocket_endpoint(
         async for session in get_db():
             # 获取用户信息
             from sqlalchemy import select
+            logger.info(f"[WebSocket] 查询用户信息, user_id={user_id}")
             result = await session.execute(select(User).where(User.id == user_id))
             user = result.scalar_one_or_none()
             
             if not user:
+                logger.error(f"[WebSocket] 用户不存在, user_id={user_id}")
                 await websocket.close(code=4004, reason="用户不存在")
                 return
+            
+            logger.info(f"[WebSocket] 用户信息: {user.username} (ID: {user.id})")
                 
             # 检查房间是否存在
+            logger.info(f"[WebSocket] 检查房间是否存在, room_id={room_id}")
             room_result = await session.execute(select(ChatRoom).where(ChatRoom.id == room_id))
             room = room_result.scalar_one_or_none()
             
             if not room:
+                logger.error(f"[WebSocket] 聊天室不存在, room_id={room_id}")
                 await websocket.close(code=4004, reason="聊天室不存在")
                 return
+            
+            logger.info(f"[WebSocket] 房间信息: {room.name} (ID: {room.id})")
                 
             # 接受连接
             user_data = {
@@ -220,21 +260,27 @@ async def websocket_endpoint(
                 "avatar_url": user.avatar_url
             }
             
-            await chat_service.connection_manager.connect(websocket, user_id, room_id, user_data)
+            logger.info(f"[WebSocket] 准备接受连接, user_data={user_data}")
+            # 首次连接时接受 WebSocket，传入 accept_connection=True
+            await chat_service.connection_manager.connect(websocket, user_id, room_id, user_data, accept_connection=True)
+            logger.info(f"[WebSocket] ✅ 连接已建立: user_id={user_id}, room_id={room_id}")
             
             try:
                 while True:
                     # 接收消息
                     data = await websocket.receive_text()
+                    logger.info(f"[WebSocket] 收到消息: {data}")
                     message_data = json.loads(data)
                     
                     # 验证消息格式
                     try:
                         ws_message = WSMessage(**message_data)
+                        logger.info(f"[WebSocket] 处理消息类型: {ws_message.type}")
                         await chat_service.handle_websocket_message(
                             websocket, user_id, ws_message, session
                         )
                     except Exception as e:
+                        logger.error(f"[WebSocket] 消息处理失败: {str(e)}", exc_info=True)
                         await websocket.send_text(json.dumps({
                             "type": "error",
                             "data": {
@@ -244,11 +290,12 @@ async def websocket_endpoint(
                         }, ensure_ascii=False))
                         
             except WebSocketDisconnect:
+                logger.info(f"[WebSocket] 客户端断开连接: user_id={user_id}, room_id={room_id}")
                 await chat_service.connection_manager.disconnect(user_id, room_id)
             except Exception as e:
-                print(f"WebSocket错误: {e}")
+                logger.error(f"[WebSocket] WebSocket错误: {str(e)}", exc_info=True)
                 await chat_service.connection_manager.disconnect(user_id, room_id)
                 
     except Exception as e:
-        print(f"WebSocket连接错误: {e}")
+        logger.error(f"[WebSocket] WebSocket连接错误: {str(e)}", exc_info=True)
         await websocket.close(code=4000, reason="服务器内部错误")

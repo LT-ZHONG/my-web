@@ -69,19 +69,10 @@ export const useMediaStore = defineStore('media', () => {
         })
       }
 
-      console.log('[mediaStore.getMediaList] 请求参数:', requestParams)
-
       const response = await mediaAPI.getMediaList(requestParams)
-      
       console.log('[mediaStore.getMediaList] 响应数据:', response)
-      console.log('[mediaStore.getMediaList] 媒体列表:', response.media_list)
-      console.log('[mediaStore.getMediaList] 媒体列表长度:', response.media_list?.length)
-      console.log('[mediaStore.getMediaList] 总数:', response.total)
-      
-      // 注意：FastAPI的response_model直接返回模型数据，不需要访问.data
       mediaItems.value = response.media_list || []
-      console.log('[mediaStore.getMediaList] 赋值后 mediaItems.value 长度:', mediaItems.value.length)
-      
+
       // 打印每个媒体项的详细信息
       if (mediaItems.value.length > 0) {
         console.log('[mediaStore.getMediaList] 媒体项详细信息:')
@@ -242,17 +233,6 @@ export const useMediaStore = defineStore('media', () => {
     }
   }
 
-  // 下载媒体
-  const downloadMedia = async (id: number, filename?: string) => {
-    try {
-      await mediaAPI.downloadMedia(id, filename)
-    } catch (err: any) {
-      const errorMessage = handleApiError(err)
-      setError(errorMessage)
-      throw new Error(errorMessage)
-    }
-  }
-
   // 获取媒体统计
   const getMediaStats = async () => {
     try {
@@ -307,7 +287,6 @@ export const useMediaStore = defineStore('media', () => {
     updateMedia,
     deleteMedia,
     toggleLike,
-    downloadMedia,
     getMediaStats,
     clearMediaItems,
   }

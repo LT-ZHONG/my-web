@@ -5,7 +5,7 @@ import Login from '../pages/Login.vue'
 import Register from '../pages/Register.vue'
 import Profile from '../pages/Profile.vue'
 import Chat from '../pages/Chat.vue'
-import VIP from '../pages/VIP.vue'
+import VIP from '../pages/Recharge.vue'
 
 const routes: RouteRecordRaw[] = [
   {

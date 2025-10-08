@@ -308,9 +308,6 @@ const renderMediaCover = (item: MediaItem) => {
     style: { height: '200px', width: '100%', objectFit: 'cover' },
     onError: (e: Event) => {
       console.error('[Gallery.renderMediaCover] 图片加载失败:', coverUrl, e)
-    },
-    onLoad: () => {
-      console.log('[Gallery.renderMediaCover] 图片加载成功:', coverUrl)
     }
   })
 }

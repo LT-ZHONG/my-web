@@ -1,21 +1,17 @@
 """
 聊天服务层
 """
-import asyncio
+
 import json
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional
 from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc, and_, func
+from sqlalchemy import select, desc, and_
 from sqlalchemy.orm import selectinload
 
-from database import get_db
-from models.chat import ChatRoom, ChatMessage, OnlineUser
+from models.chat import ChatRoom, ChatMessage
 from models.user import User
-from schemas.chat import (
-    ChatMessageResponse, ChatRoomResponse, OnlineUserResponse,
-    ChatMessageCreate, WSMessage, WSChatMessage
-)
+from schemas.chat import ChatMessageResponse, ChatRoomResponse, WSMessage, WSChatMessage
 
 
 class ConnectionManager:
@@ -31,9 +27,25 @@ class ConnectionManager:
         # 正在输入的用户：{room_id: {user_id: timestamp}}
         self.typing_users: Dict[int, Dict[int, datetime]] = {}
         
-    async def connect(self, websocket: any, user_id: int, room_id: int, user_data: dict):
-        """用户连接到房间"""
-        await websocket.accept()
+    async def connect(self, websocket: any, user_id: int, room_id: int, user_data: dict, accept_connection: bool = True):
+        """用户连接到房间
+        
+        Args:
+            websocket: WebSocket连接对象
+            user_id: 用户ID
+            room_id: 房间ID
+            user_data: 用户数据
+            accept_connection: 是否接受WebSocket连接（首次连接时为True，加入房间时为False）
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        # 只在首次连接时接受WebSocket
+        if accept_connection:
+            logger.info(f"[ConnectionManager] 接受 WebSocket 连接: user_id={user_id}, room_id={room_id}")
+            await websocket.accept()
+        else:
+            logger.info(f"[ConnectionManager] 用户加入房间（不接受连接）: user_id={user_id}, room_id={room_id}")
         
         # 存储连接
         if user_id not in self.active_connections:
@@ -47,7 +59,7 @@ class ConnectionManager:
         # 存储用户信息
         self.user_info[user_id] = user_data
         
-        print(f"用户 {user_id} 连接到房间 {room_id}")
+        logger.info(f"[ConnectionManager] 用户 {user_id} 已连接到房间 {room_id}")
         
         # 通知房间其他用户
         await self.broadcast_to_room(room_id, {
@@ -348,15 +360,22 @@ class ChatService:
         session: AsyncSession
     ):
         """处理WebSocket消息"""
+        import logging
+        logger = logging.getLogger(__name__)
+        
         try:
             if message.type == "join_room":
                 room_id = message.data.get("room_id")
                 if room_id:
+                    logger.info(f"[ChatService] 处理加入房间消息: user_id={user_id}, room_id={room_id}")
                     user_data = message.data.get("user", {})
-                    await self.connection_manager.connect(websocket, user_id, room_id, user_data)
+                    # 注意：这里不需要接受连接，因为在 websocket_endpoint 中已经接受了
+                    # 这里只是更新房间连接状态
+                    await self.connection_manager.connect(websocket, user_id, room_id, user_data, accept_connection=False)
                     
                     # 发送在线用户列表
                     online_users = await self.connection_manager.get_room_online_users(room_id)
+                    logger.info(f"[ChatService] 房间 {room_id} 当前在线用户: {len(online_users)} 人")
                     await self.connection_manager.send_personal_message(user_id, room_id, {
                         "type": "online_users",
                         "data": {"users": online_users}

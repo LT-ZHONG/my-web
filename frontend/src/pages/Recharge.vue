@@ -260,7 +260,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
-import { useAuthStore } from '../stores/auth'
+import { useAuthStore } from '@/stores'
 import { apiClient } from '../utils/api'
 import type { CreditRechargeRequest, CreditRechargeResponse } from '@/types'
 import {
@@ -286,7 +286,6 @@ import {
   PayCircleOutlined,
   WalletOutlined,
   CopyOutlined,
-  InfoCircleOutlined,
   CheckCircleOutlined,
   SafetyOutlined,
   CustomerServiceOutlined,
