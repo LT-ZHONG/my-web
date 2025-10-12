@@ -1,104 +1,91 @@
 <template>
-  <a-modal
-    :open="open"
+  <n-modal
+    v-model:show="isOpen"
+    preset="card"
     title="上传媒体文件"
-    :width="600"
-    :confirm-loading="mediaStore.uploading"
-    @ok="handleSubmit"
-    @cancel="handleCancel"
+    :style="{ width: '600px', maxWidth: '90vw' }"
+    :loading="mediaStore.uploading"
   >
-    <a-form
+    <n-form
+      ref="formRef"
       :model="form"
       :rules="rules"
-      layout="vertical"
-      ref="formRef"
+      label-placement="top"
     >
+      <!-- 基本信息 -->
+      <n-form-item path="title" label="标题" required>
+        <n-input 
+          v-model:value="form.title" 
+          placeholder="请输入媒体标题"
+          :maxlength="100"
+          show-count
+        />
+      </n-form-item>
+
       <!-- 文件上传 -->
-      <a-form-item label="选择文件">
-        <a-upload-dragger
-          v-model:file-list="fileList"
-          name="file"
-          :multiple="false"
-          :before-upload="beforeUpload"
-          @remove="handleRemove"
+      <n-upload
+          :on-before-upload="beforeUpload"
           accept="image/*,video/*"
-        >
-          <p class="ant-upload-drag-icon">
-            <inbox-outlined />
-          </p>
-          <p class="ant-upload-text">点击或拖拽文件到此区域上传</p>
-          <p class="ant-upload-hint">
-            支持图片和视频文件，单个文件大小不超过50MB
-          </p>
-        </a-upload-dragger>
-      </a-form-item>
+          :show-file-list="false"
+          :directory="false"
+          :multiple="false"
+      >
+        <n-button type="primary" ghost>
+          <template #icon>
+            <n-icon><cloud-upload-outline /></n-icon>
+          </template>
+          选择文件
+        </n-button>
+      </n-upload>
 
       <!-- 上传进度 -->
       <div v-if="mediaStore.uploading" class="upload-progress">
-        <a-progress 
-          :percent="mediaStore.uploadProgress" 
-          :status="mediaStore.uploadProgress === 100 ? 'success' : 'active'"
+        <n-progress 
+          type="line" 
+          :percentage="mediaStore.uploadProgress" 
+          :status="mediaStore.uploadProgress === 100 ? 'success' : 'default'"
+          processing
         />
         <p class="progress-text">上传中... {{ mediaStore.uploadProgress }}%</p>
       </div>
 
-      <!-- 基本信息 -->
-      <a-form-item label="标题" name="title" required>
-        <a-input 
-          v-model:value="form.title" 
-          placeholder="请输入媒体标题"
-          :max-length="100"
-          show-count
-          id="form_item_title"
-        />
-      </a-form-item>
-
-      <a-form-item label="描述" name="description">
-        <a-textarea 
+      <n-form-item path="description" label="描述">
+        <n-input 
           v-model:value="form.description" 
+          type="textarea"
           placeholder="请输入描述信息（可选）"
           :rows="3"
-          :max-length="500"
+          :maxlength="500"
           show-count
-          id="form_item_description"
         />
-      </a-form-item>
-
-      <a-form-item label="标签" name="tags">
-        <a-input 
-          v-model:value="form.tags" 
-          placeholder="请输入标签，用逗号分隔（可选）"
-          :max-length="200"
-          id="form_item_tags"
-        />
-      </a-form-item>
+      </n-form-item>
 
       <!-- 价格设置 -->
-      <a-form-item label="内容类型" name="is_paid">
-        <a-radio-group v-model:value="form.is_paid" id="form_item_is_paid">
-          <a-radio :value="false">免费内容</a-radio>
-          <a-radio :value="true">付费内容</a-radio>
-        </a-radio-group>
-      </a-form-item>
+      <n-form-item path="is_paid" label="内容类型">
+        <n-radio-group v-model:value="form.is_paid">
+          <n-space>
+            <n-radio :value="false">免费内容</n-radio>
+            <n-radio :value="true">付费内容</n-radio>
+          </n-space>
+        </n-radio-group>
+      </n-form-item>
 
-      <a-form-item 
+      <n-form-item 
         v-if="form.is_paid" 
-        label="价格" 
-        name="price"
-        :rules="priceRules"
+        path="price" 
+        label="价格"
       >
-        <a-input-number
+        <n-input-number
           v-model:value="form.price"
           placeholder="请设置价格"
           :min="0.01"
           :max="999"
           :precision="2"
           style="width: 100%"
-          id="form_item_price"
         >
-          <template #addonBefore>¥</template>
-        </a-input-number>
-      </a-form-item>
+          <template #prefix>¥</template>
+        </n-input-number>
+      </n-form-item>
 
       <!-- 文件预览 -->
       <div v-if="previewUrl" class="file-preview">
@@ -124,28 +111,45 @@
           </p>
         </div>
       </div>
-    </a-form>
-  </a-modal>
+    </n-form>
+    
+    <template #footer>
+      <n-space justify="end">
+        <n-button @click="handleCancel">取消</n-button>
+        <n-button 
+          type="primary" 
+          @click="handleSubmit"
+          :loading="mediaStore.uploading"
+        >
+          上传
+        </n-button>
+      </n-space>
+    </template>
+  </n-modal>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from 'vue'
-import { message } from 'ant-design-vue'
+import { useMessage } from 'naive-ui'
 import {
-  Modal as AModal,
-  Form as AForm,
-  Input as AInput,
-  Button as AButton,
-  Upload as AUpload,
-  Progress as AProgress,
-  Radio as ARadio,
-  InputNumber as AInputNumber,
-} from 'ant-design-vue'
-import { InboxOutlined } from '@ant-design/icons-vue'
+  NModal,
+  NForm,
+  NFormItem,
+  NInput,
+  NButton,
+  NUpload,
+  NProgress,
+  NRadioGroup,
+  NRadio,
+  NInputNumber,
+  NSpace,
+  NIcon,
+  type UploadFileInfo,
+} from 'naive-ui'
+import { CloudUploadOutline } from '@vicons/ionicons5'
 import { useMediaStore } from '@/stores'
 import { formatFileSize, formatDuration, isImageFile, isVideoFile } from '@/utils'
 import type { MediaUploadData, MediaItem } from '@/types'
-import type { UploadFile } from 'ant-design-vue'
 
 interface Props {
   open: boolean
@@ -160,19 +164,23 @@ const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
 const mediaStore = useMediaStore()
+const message = useMessage()
 const formRef = ref()
+
+const isOpen = computed({
+  get: () => props.open,
+  set: (val) => emit('update:open', val)
+})
 
 // 表单数据
 const form = reactive<MediaUploadData>({
   title: '',
   description: '',
-  tags: '',
   is_paid: false,
-  price: undefined,
+  price: undefined as number | undefined,
 })
 
 // 文件相关
-const fileList = ref<UploadFile[]>([])
 const selectedFile = ref<File | null>(null)
 const previewUrl = ref('')
 const fileType = ref<'image' | 'video' | ''>('')
@@ -182,29 +190,18 @@ const videoDuration = ref(0)
 // 表单验证规则
 const rules = {
   title: [
-    { required: true, message: '请输入标题' },
-    { max: 100, message: '标题长度不能超过100个字符' }
+    { required: true, message: '请输入标题', trigger: 'blur' },
+    { max: 100, message: '标题长度不能超过100个字符', trigger: 'blur' }
   ],
   description: [
-    { max: 500, message: '描述长度不能超过500个字符' }
-  ],
-  tags: [
-    { max: 200, message: '标签长度不能超过200个字符' }
+    { max: 500, message: '描述长度不能超过500个字符', trigger: 'blur' }
   ]
 }
 
-const priceRules = computed(() => {
-  if (form.is_paid) {
-    return [
-      { required: true, message: '付费内容必须设置价格' },
-      { type: 'number', min: 0.01, message: '价格必须大于0' }
-    ]
-  }
-  return []
-})
-
 // 文件上传前检查
-const beforeUpload = (file: File) => {
+const beforeUpload = (options: { file: UploadFileInfo }): boolean => {
+  const file = options.file.file as File
+  
   // 检查文件类型
   if (!isImageFile(file) && !isVideoFile(file)) {
     message.error('只支持图片和视频文件！')
@@ -269,6 +266,8 @@ const handleRemove = () => {
   if (previewUrl.value) {
     URL.revokeObjectURL(previewUrl.value)
   }
+  
+  return true
 }
 
 // 提交表单
@@ -280,7 +279,7 @@ const handleSubmit = async () => {
 
   try {
     // 表单验证
-    await formRef.value.validate()
+    await formRef.value?.validate()
   } catch (validationError) {
     // 表单验证失败，直接返回
     console.error('Form validation failed:', validationError)
@@ -311,18 +310,16 @@ const handleCancel = () => {
   // 重置表单
   form.title = ''
   form.description = ''
-  form.tags = ''
   form.is_paid = false
   form.price = undefined
 
   // 清理文件
-  fileList.value = []
   handleRemove()
 
   // 重置表单验证
-  formRef.value?.resetFields()
+  formRef.value?.restoreValidation()
 
-  emit('update:open', false)
+  isOpen.value = false
 }
 
 // 监听付费状态变化
@@ -348,75 +345,155 @@ watch(() => props.open, (open) => {
 </script>
 
 <style scoped>
+:deep(.n-modal) {
+  background: var(--color-dark-800);
+  border: 1px solid var(--color-dark-600);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+}
+
+:deep(.n-card__header) {
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-dark-600);
+}
+
+:deep(.n-form-item-label) {
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+
+:deep(.n-input) {
+  background: var(--color-dark-700);
+  border-color: var(--color-dark-600);
+}
+
+:deep(.n-input__input-el),
+:deep(.n-input__textarea-el) {
+  color: var(--color-text-primary);
+}
+
+:deep(.n-input:hover) {
+  border-color: var(--color-neon-blue);
+}
+
+:deep(.n-input.n-input--focus) {
+  border-color: var(--color-neon-blue);
+  box-shadow: 0 0 0 2px rgba(5, 217, 232, 0.2);
+}
+
+:deep(.n-input-number) {
+  background: var(--color-dark-700);
+  border-color: var(--color-dark-600);
+}
+
+:deep(.n-input-number__input) {
+  color: var(--color-text-primary);
+}
+
+:deep(.n-input-number:hover) {
+  border-color: var(--color-neon-blue);
+}
+
+:deep(.n-input-number.n-input-number--focus) {
+  border-color: var(--color-neon-blue);
+  box-shadow: 0 0 0 2px rgba(5, 217, 232, 0.2);
+}
+
+:deep(.n-radio) {
+  color: var(--color-text-primary);
+}
+
+:deep(.n-upload-dragger:hover) {
+  border-color: var(--color-neon-blue);
+  background: var(--color-dark-600);
+}
+
+:deep(.upload-icon-container .n-icon) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+:deep(.n-upload-dragger .n-text) {
+  color: var(--color-text-primary);
+  display: block;
+  margin-bottom: 8px;
+}
+
+:deep(.n-upload-dragger .n-p) {
+  color: var(--color-text-secondary);
+  display: block;
+}
+
 .upload-progress {
   margin: 16px 0;
-  padding: 16px;
-  background: #f5f5f5;
-  border-radius: 6px;
+  padding: 20px;
+  background: var(--color-dark-700);
+  border: 1px solid var(--color-dark-600);
+  border-radius: 12px;
+}
+
+.upload-progress :deep(.n-progress-graph-line-fill) {
+  background: linear-gradient(90deg, var(--color-neon-blue), var(--color-neon-purple));
 }
 
 .progress-text {
   text-align: center;
-  margin: 8px 0 0 0;
-  color: #666;
-  font-size: 14px;
+  margin: 12px 0 0 0;
+  color: var(--color-neon-blue);
+  font-size: 0.875rem;
+  font-weight: 500;
 }
 
 .file-preview {
-  margin-top: 16px;
-  padding: 16px;
-  border: 1px dashed #d9d9d9;
-  border-radius: 6px;
-  background: #fafafa;
+  margin-top: 20px;
+  padding: 20px;
+  border: 1px solid var(--color-dark-600);
+  border-radius: 12px;
+  background: var(--color-dark-700);
+  transition: all 0.3s ease;
+}
+
+.file-preview:hover {
+  border-color: var(--color-neon-blue);
+  box-shadow: 0 4px 16px rgba(5, 217, 232, 0.2);
 }
 
 .file-preview h4 {
-  margin: 0 0 12px 0;
-  color: #333;
+  margin: 0 0 16px 0;
+  color: var(--color-neon-blue);
+  font-weight: 600;
+  font-size: 1rem;
 }
 
 .preview-content {
   text-align: center;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--color-dark-900);
+  padding: 12px;
+}
+
+.preview-content img,
+.preview-content video {
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
 .file-info {
-  font-size: 12px;
-  color: #666;
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
 }
 
 .file-info p {
-  margin: 4px 0;
-}
-
-.ant-upload-drag {
-  border: 2px dashed #d9d9d9;
+  margin: 6px 0;
+  padding: 6px 12px;
+  background: var(--color-dark-600);
   border-radius: 6px;
-  background: #fafafa;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  transition: border-color 0.3s;
+  display: inline-block;
 }
 
-.ant-upload-drag:hover {
-  border-color: #40a9ff;
-}
-
-.ant-upload-drag-icon {
-  font-size: 48px;
-  color: #40a9ff;
-}
-
-.ant-upload-text {
-  font-size: 16px;
-  color: #666;
-  margin: 0 0 4px 0;
-}
-
-.ant-upload-hint {
-  font-size: 14px;
-  color: #999;
-  margin: 0;
+:deep(.n-card__footer) {
+  border-top: 1px solid var(--color-dark-600);
 }
 </style>

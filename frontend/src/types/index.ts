@@ -96,7 +96,6 @@ export interface MediaItem {
 export interface MediaUploadData {
   title: string
   description?: string
-  tags?: string
   is_paid: boolean
   price?: number
 }

@@ -1,36 +1,37 @@
 <template>
   <div class="chat-container">
     <div class="chat-header">
-      <a-typography-title :level="2">
+      <n-h2>
         <template v-if="!authStore.user?.is_admin">
           与管理员聊天
         </template>
         <template v-else>
           用户聊天管理
         </template>
-      </a-typography-title>
+      </n-h2>
       
       <div class="connection-status">
-        <a-tag v-if="connected" color="success">
-          <template #icon><CheckCircleOutlined /></template>
+        <n-tag v-if="connected" type="success">
+          <template #icon>
+            <n-icon><checkmark-circle-outline /></n-icon>
+          </template>
           已连接
-        </a-tag>
-        <a-tag v-else color="error">
-          <template #icon><CloseCircleOutlined /></template>
+        </n-tag>
+        <n-tag v-else type="error">
+          <template #icon>
+            <n-icon><close-circle-outline /></n-icon>
+          </template>
           未连接
-        </a-tag>
+        </n-tag>
         
-        <a-tooltip v-if="reconnectAttempts > 0" title="正在重连...">
-          <a-spin size="small" style="margin-left: 8px" />
-        </a-tooltip>
+        <n-spin v-if="reconnectAttempts > 0" size="small" style="margin-left: 8px" />
       </div>
     </div>
 
-    <a-alert
+    <n-alert
       v-if="error"
-      :message="error"
+      :title="error"
       type="error"
-      show-icon
       closable
       @close="clearError"
       style="margin-bottom: 16px"
@@ -39,9 +40,9 @@
     <!-- 普通用户聊天界面 -->
     <div v-if="!authStore.user?.is_admin" class="user-chat">
       <div v-if="adminInfo" class="admin-info">
-        <a-avatar size="large">
+        <n-avatar round size="large">
           {{ adminInfo.username?.charAt(0).toUpperCase() }}
-        </a-avatar>
+        </n-avatar>
         <div class="admin-details">
           <h3>{{ adminInfo.nickname || adminInfo.username }}</h3>
           <p>管理员</p>
@@ -52,7 +53,7 @@
         <div class="chat-messages" ref="messagesContainer">
           <!-- 加载状态 -->
           <div v-if="loading" class="loading-container">
-            <a-spin size="large" />
+            <n-spin size="large" />
           </div>
           
           <!-- 消息列表 -->
@@ -62,12 +63,12 @@
             :class="['message', { 'own-message': isOwnMessage(msg) }]"
           >
             <div class="message-avatar" v-if="!isOwnMessage(msg)">
-              <a-avatar 
-                :alt="msg.sender_username"
+              <n-avatar 
+                round
                 size="small"
               >
                 {{ (msg.sender_username || adminInfo?.username)?.charAt(0).toUpperCase() }}
-              </a-avatar>
+              </n-avatar>
             </div>
             
             <div class="message-content">
@@ -78,54 +79,58 @@
             </div>
             
             <div class="message-avatar" v-if="isOwnMessage(msg)">
-              <a-avatar 
-                :alt="authStore.user?.username"
+              <n-avatar 
+                round
                 size="small"
               >
                 {{ authStore.user?.username?.charAt(0).toUpperCase() }}
-              </a-avatar>
+              </n-avatar>
             </div>
           </div>
           
           <!-- 正在输入指示器 -->
           <div v-if="typingUsers.length > 0" class="typing-indicator">
-            <a-avatar size="small">
+            <n-avatar round size="small">
               {{ adminInfo?.username?.charAt(0).toUpperCase() }}
-            </a-avatar>
+            </n-avatar>
             <span class="typing-text">正在输入...</span>
           </div>
         </div>
         
         <div class="chat-input">
-          <a-input 
+          <n-input 
             v-model:value="newMessage"
             placeholder="输入消息..."
             :maxlength="1000"
-            @press-enter="handleSendMessage"
+            @keydown.enter="handleSendMessage"
             @input="handleTyping"
             @blur="handleStopTyping"
             :disabled="!connected"
           >
             <template #suffix>
-              <a-button 
+              <n-button 
                 type="primary" 
-                :icon="h(SendOutlined)"
                 @click="handleSendMessage"
                 :disabled="!connected || !newMessage.trim()"
                 :loading="sending"
-              />
+                text
+              >
+                <template #icon>
+                  <n-icon><send-outline /></n-icon>
+                </template>
+              </n-button>
             </template>
-          </a-input>
+          </n-input>
         </div>
       </div>
     </div>
 
     <!-- 管理员聊天界面 -->
     <div v-else class="admin-chat">
-      <a-row :gutter="16">
+      <n-grid :cols="24" :x-gap="16">
         <!-- 用户列表 -->
-        <a-col :xs="24" :md="8">
-          <a-card title="用户列表" size="small" class="user-list-card">
+        <n-grid-item :span="24" :md="8">
+          <n-card title="用户列表" size="small" class="user-list-card">
             <div class="user-list">
               <div 
                 v-for="chat in adminChatList" 
@@ -133,37 +138,36 @@
                 :class="['user-item', { 'active': currentChatUser?.user_id === chat.user_id }]"
                 @click="switchToUser(chat)"
               >
-                <a-avatar 
-                  :alt="chat.username"
-                  size="default"
+                <n-avatar 
+                  round
+                  size="medium"
                 >
                   {{ chat.username?.charAt(0).toUpperCase() }}
-                </a-avatar>
+                </n-avatar>
                 <div class="user-details">
                   <div class="user-name">{{ chat.nickname || chat.username }}</div>
                   <div class="last-message">{{ chat.last_message }}</div>
                 </div>
                 <div class="message-info">
                   <div class="message-time">{{ formatLastMessageTime(chat.last_message_time) }}</div>
-                  <a-badge v-if="chat.unread_count > 0" :count="chat.unread_count" />
+                  <n-badge v-if="chat.unread_count > 0" :value="chat.unread_count" />
                 </div>
               </div>
               
-              <a-empty v-if="adminChatList.length === 0" 
-                image="simple" 
+              <n-empty v-if="adminChatList.length === 0" 
                 description="暂无聊天记录" 
               />
             </div>
-          </a-card>
-        </a-col>
+          </n-card>
+        </n-grid-item>
         
         <!-- 聊天区域 -->
-        <a-col :xs="24" :md="16">
+        <n-grid-item :span="24" :md="16">
           <div v-if="currentChatUser" class="chat-box">
             <div class="chat-header-user">
-              <a-avatar size="large">
+              <n-avatar round size="large">
                 {{ currentChatUser.username?.charAt(0).toUpperCase() }}
-              </a-avatar>
+              </n-avatar>
               <div class="user-info">
                 <h3>{{ currentChatUser.nickname || currentChatUser.username }}</h3>
                 <p>{{ connected ? '在线' : '离线' }}</p>
@@ -173,7 +177,7 @@
             <div class="chat-messages" ref="messagesContainer">
               <!-- 加载状态 -->
               <div v-if="loading" class="loading-container">
-                <a-spin size="large" />
+                <n-spin size="large" />
               </div>
               
               <!-- 消息列表 -->
@@ -183,12 +187,12 @@
                 :class="['message', { 'own-message': isOwnMessage(msg) }]"
               >
                 <div class="message-avatar" v-if="!isOwnMessage(msg)">
-                  <a-avatar 
-                    :alt="msg.sender_username"
+                  <n-avatar 
+                    round
                     size="small"
                   >
                     {{ (msg.sender_username || currentChatUser.username)?.charAt(0).toUpperCase() }}
-                  </a-avatar>
+                  </n-avatar>
                 </div>
                 
                 <div class="message-content">
@@ -199,79 +203,84 @@
                 </div>
                 
                 <div class="message-avatar" v-if="isOwnMessage(msg)">
-                  <a-avatar 
-                    :alt="authStore.user?.username"
+                  <n-avatar 
+                    round
                     size="small"
                   >
                     {{ authStore.user?.username?.charAt(0).toUpperCase() }}
-                  </a-avatar>
+                  </n-avatar>
                 </div>
               </div>
               
               <!-- 正在输入指示器 -->
               <div v-if="typingUsers.length > 0" class="typing-indicator">
-                <a-avatar size="small">
+                <n-avatar round size="small">
                   {{ currentChatUser.username?.charAt(0).toUpperCase() }}
-                </a-avatar>
+                </n-avatar>
                 <span class="typing-text">正在输入...</span>
               </div>
             </div>
             
             <div class="chat-input">
-              <a-input 
+              <n-input 
                 v-model:value="newMessage"
                 placeholder="输入消息..."
                 :maxlength="1000"
-                @press-enter="handleSendMessage"
+                @keydown.enter="handleSendMessage"
                 @input="handleTyping"
                 @blur="handleStopTyping"
                 :disabled="!connected"
               >
                 <template #suffix>
-                  <a-button 
+                  <n-button 
                     type="primary" 
-                    :icon="h(SendOutlined)"
                     @click="handleSendMessage"
                     :disabled="!connected || !newMessage.trim()"
                     :loading="sending"
-                  />
+                    text
+                  >
+                    <template #icon>
+                      <n-icon><send-outline /></n-icon>
+                    </template>
+                  </n-button>
                 </template>
-              </a-input>
+              </n-input>
             </div>
           </div>
           
           <div v-else class="no-chat-selected">
-            <a-empty description="请选择要聊天的用户" />
+            <n-empty description="请选择要聊天的用户" />
           </div>
-        </a-col>
-      </a-row>
+        </n-grid-item>
+      </n-grid>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, h, onMounted, onUnmounted, nextTick, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, computed, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { 
-  Input as AInput,
-  Button as AButton, 
-  Row as ARow,
-  Col as ACol,
-  Card as ACard,
-  Avatar as AAvatar,
-  Badge as ABadge,
-  Tag as ATag,
-  Alert as AAlert,
-  Empty as AEmpty,
-  Spin as ASpin,
-  Tooltip as ATooltip,
-  message
-} from 'ant-design-vue'
+  NInput,
+  NButton, 
+  NGrid,
+  NGridItem,
+  NCard,
+  NAvatar,
+  NBadge,
+  NTag,
+  NAlert,
+  NEmpty,
+  NSpin,
+  NH2,
+  NIcon,
+  useMessage
+} from 'naive-ui'
 import { 
-  SendOutlined, 
-  CheckCircleOutlined,
-  CloseCircleOutlined 
-} from '@ant-design/icons-vue'
+  SendOutline, 
+  CheckmarkCircleOutline,
+  CloseCircleOutline,
+} from '@vicons/ionicons5'
 import dayjs from 'dayjs'
 import { useChatStore } from '@/stores'
 import { useAuthStore } from '@/stores'
@@ -280,6 +289,7 @@ import type { ChatMessage, AdminInfo, AdminChatListItem, PrivateRoomResponse } f
 // Store
 const chatStore = useChatStore()
 const authStore = useAuthStore()
+const message = useMessage()
 
 // 响应式状态
 const newMessage = ref('')
@@ -515,7 +525,9 @@ onUnmounted(() => {
 
 <style scoped>
 .chat-container {
-  padding: 24px;
+  min-height: 100vh;
+  background: var(--color-dark-900);
+  padding: 80px 24px 48px;
   max-width: 1400px;
   margin: 0 auto;
 }
@@ -524,7 +536,14 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 32px;
+}
+
+.chat-header :deep(h2) {
+  font-family: 'Playfair Display', serif;
+  color: var(--color-neon-blue);
+  text-shadow: 0 0 20px rgba(5, 217, 232, 0.5);
+  margin: 0;
 }
 
 .connection-status {
@@ -535,43 +554,58 @@ onUnmounted(() => {
 
 /* 普通用户聊天样式 */
 .user-chat {
-  max-width: 800px;
+  max-width: 900px;
   margin: 0 auto;
 }
 
 .admin-info {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px 20px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  margin-bottom: 16px;
+  gap: 16px;
+  padding: 20px 24px;
+  background: var(--color-dark-800);
+  border: 1px solid var(--color-dark-600);
+  border-radius: 16px;
+  margin-bottom: 24px;
+  transition: all 0.3s ease;
+}
+
+.admin-info:hover {
+  border-color: var(--color-neon-blue);
+  box-shadow: 0 8px 24px rgba(5, 217, 232, 0.2);
 }
 
 .admin-details h3 {
-  margin: 0;
-  font-size: 16px;
+  margin: 0 0 4px;
+  font-size: 1.125rem;
   font-weight: 600;
+  color: var(--color-text-primary);
 }
 
 .admin-details p {
   margin: 0;
-  color: #666;
-  font-size: 14px;
+  color: var(--color-neon-blue);
+  font-size: 0.875rem;
 }
 
 /* 管理员聊天样式 */
 .admin-chat {
-  height: 700px;
+  min-height: 700px;
 }
 
 .user-list-card {
   height: 100%;
+  background: var(--color-dark-800);
+  border: 1px solid var(--color-dark-600);
+  border-radius: 16px;
 }
 
-.user-list-card :deep(.ant-card-body) {
+.user-list-card :deep(.n-card) {
+  background: var(--color-dark-800);
+  border-color: var(--color-dark-600);
+}
+
+.user-list-card :deep(.n-card__content) {
   padding: 0;
   height: calc(100% - 57px);
   overflow: hidden;
@@ -586,19 +620,20 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
+  padding: 16px 20px;
   cursor: pointer;
-  transition: background-color 0.2s;
-  border-bottom: 1px solid #f0f0f0;
+  transition: all 0.3s ease;
+  border-bottom: 1px solid var(--color-dark-600);
 }
 
 .user-item:hover {
-  background-color: #f5f5f5;
+  background: var(--color-dark-700);
+  border-left: 3px solid var(--color-neon-blue);
 }
 
 .user-item.active {
-  background-color: #e6f7ff;
-  border-color: #91d5ff;
+  background: rgba(5, 217, 232, 0.1);
+  border-left: 3px solid var(--color-neon-blue);
 }
 
 .user-details {
@@ -607,14 +642,15 @@ onUnmounted(() => {
 }
 
 .user-name {
-  font-weight: 500;
-  font-size: 14px;
+  font-weight: 600;
+  font-size: 0.9375rem;
   margin-bottom: 4px;
+  color: var(--color-text-primary);
 }
 
 .last-message {
-  font-size: 12px;
-  color: #999;
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -628,55 +664,59 @@ onUnmounted(() => {
 }
 
 .message-time {
-  font-size: 11px;
-  color: #999;
+  font-size: 0.6875rem;
+  color: var(--color-text-secondary);
 }
 
 .chat-header-user {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px 20px;
-  border-bottom: 1px solid #e8e8e8;
-  background: #fafafa;
+  gap: 16px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--color-dark-600);
+  background: var(--color-dark-800);
+  border-radius: 16px 16px 0 0;
 }
 
 .user-info h3 {
-  margin: 0;
-  font-size: 16px;
+  margin: 0 0 4px;
+  font-size: 1.125rem;
   font-weight: 600;
+  color: var(--color-text-primary);
 }
 
 .user-info p {
   margin: 0;
-  color: #666;
-  font-size: 14px;
+  color: var(--color-neon-blue);
+  font-size: 0.875rem;
 }
 
 .no-chat-selected {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100%;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  height: 600px;
+  background: var(--color-dark-800);
+  border: 1px solid var(--color-dark-600);
+  border-radius: 16px;
 }
 
 .chat-box {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: var(--color-dark-800);
+  border: 1px solid var(--color-dark-600);
+  border-radius: 16px;
   height: 600px;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
 .chat-messages {
   flex: 1;
-  padding: 16px;
+  padding: 24px;
   overflow-y: auto;
   scroll-behavior: smooth;
+  background: var(--color-dark-900);
 }
 
 .loading-container {
@@ -687,10 +727,22 @@ onUnmounted(() => {
 }
 
 .message {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: 12px;
+  animation: fadeInUp 0.3s ease;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .message.own-message {
@@ -703,20 +755,24 @@ onUnmounted(() => {
 
 .message-content {
   max-width: 70%;
-  background: #f5f5f5;
+  background: var(--color-dark-700);
   padding: 12px 16px;
   border-radius: 16px;
   position: relative;
+  border: 1px solid var(--color-dark-600);
+  color: var(--color-text-primary);
 }
 
 .own-message .message-content {
-  background: linear-gradient(135deg, #ff6b35, #ff8e53);
-  color: white;
+  background: linear-gradient(135deg, var(--color-neon-blue), var(--color-neon-purple));
+  border-color: transparent;
+  color: var(--color-dark-900);
+  box-shadow: 0 4px 16px rgba(5, 217, 232, 0.3);
 }
 
 .message-sender {
-  font-size: 12px;
-  color: #666;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
   margin-bottom: 4px;
   font-weight: 500;
 }
@@ -727,34 +783,35 @@ onUnmounted(() => {
 
 .message-text {
   word-wrap: break-word;
-  line-height: 1.4;
+  line-height: 1.6;
   margin-bottom: 4px;
 }
 
 .message-time {
-  font-size: 11px;
-  opacity: 0.6;
+  font-size: 0.6875rem;
+  opacity: 0.7;
   text-align: right;
 }
 
 .own-message .message-time {
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(0, 0, 0, 0.6);
 }
 
 .typing-indicator {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
-  background: #f0f0f0;
-  border-radius: 12px;
+  padding: 12px 16px;
+  background: var(--color-dark-700);
+  border: 1px solid var(--color-dark-600);
+  border-radius: 16px;
   margin-bottom: 12px;
   animation: pulse 1.5s infinite;
 }
 
 .typing-text {
-  font-size: 12px;
-  color: #666;
+  font-size: 0.8125rem;
+  color: var(--color-neon-blue);
   font-style: italic;
 }
 
@@ -764,58 +821,41 @@ onUnmounted(() => {
 }
 
 .chat-input {
-  padding: 16px;
-  border-top: 1px solid #e8e8e8;
-  background: #fafafa;
-  border-radius: 0 0 12px 12px;
+  padding: 20px 24px;
+  border-top: 1px solid var(--color-dark-600);
+  background: var(--color-dark-800);
+  border-radius: 0 0 16px 16px;
 }
 
-.online-users-card {
-  height: 600px;
-  overflow: hidden;
+.chat-input :deep(.n-input) {
+  background: var(--color-dark-700);
+  border-color: var(--color-dark-600);
 }
 
-.online-users-card :deep(.ant-card-body) {
-  padding: 12px;
-  height: calc(100% - 57px);
-  overflow-y: auto;
+.chat-input :deep(.n-input__input-el) {
+  color: var(--color-text-primary);
 }
 
-.online-users-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.chat-input :deep(.n-input:hover) {
+  border-color: var(--color-neon-blue);
 }
 
-.online-user-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px;
-  border-radius: 8px;
-  transition: background-color 0.2s;
-}
-
-.online-user-item:hover {
-  background-color: #f5f5f5;
-}
-
-.user-name {
-  flex: 1;
-  font-size: 14px;
-  color: #333;
+.chat-input :deep(.n-input.n-input--focus) {
+  border-color: var(--color-neon-blue);
+  box-shadow: 0 0 0 2px rgba(5, 217, 232, 0.2);
 }
 
 /* 响应式设计 */
 @media (max-width: 768px) {
   .chat-container {
-    padding: 12px;
+    padding: 64px 16px 32px;
   }
   
   .chat-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 8px;
+    gap: 12px;
+    margin-bottom: 24px;
   }
   
   .user-chat .chat-box {
@@ -823,24 +863,7 @@ onUnmounted(() => {
   }
   
   .admin-chat {
-    height: auto;
-  }
-  
-  .admin-chat .ant-row {
-    flex-direction: column;
-  }
-  
-  .admin-chat .ant-col {
-    width: 100% !important;
-    margin-bottom: 16px;
-  }
-  
-  .user-list-card {
-    height: 300px;
-  }
-  
-  .admin-chat .chat-box {
-    height: 400px;
+    min-height: auto;
   }
   
   .message-content {
@@ -848,44 +871,48 @@ onUnmounted(() => {
   }
   
   .user-item {
-    padding: 8px 12px;
+    padding: 12px 16px;
   }
   
   .admin-info {
-    padding: 12px 16px;
+    padding: 16px 20px;
   }
 }
 
-/* 滚动条样式 */
+/* 自定义滚动条 */
 .chat-messages::-webkit-scrollbar {
   width: 6px;
 }
 
 .chat-messages::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--color-dark-800);
   border-radius: 3px;
 }
 
 .chat-messages::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
+  background: var(--color-dark-600);
   border-radius: 3px;
+  transition: background 0.3s ease;
 }
 
 .chat-messages::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+  background: var(--color-neon-blue);
 }
 
-.online-users-list::-webkit-scrollbar {
-  width: 4px;
+.user-list::-webkit-scrollbar {
+  width: 6px;
 }
 
-.online-users-list::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 2px;
+.user-list::-webkit-scrollbar-track {
+  background: var(--color-dark-800);
 }
 
-.online-users-list::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 2px;
+.user-list::-webkit-scrollbar-thumb {
+  background: var(--color-dark-600);
+  border-radius: 3px;
+}
+
+.user-list::-webkit-scrollbar-thumb:hover {
+  background: var(--color-neon-blue);
 }
 </style>

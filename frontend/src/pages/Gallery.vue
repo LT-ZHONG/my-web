@@ -1,159 +1,126 @@
 <template>
-  <div class="page-container">
-    <div class="header-section">
-      <a-typography-title :level="2">照片视频</a-typography-title>
-      <a-button 
-        type="primary" 
-        @click="showUploadModal = true"
+  <div class="gallery-page">
+    <!-- 页头 -->
+    <section class="gallery-header">
+      <h1 class="page-title text-neon-blue">作品展示</h1>
+      <p class="page-subtitle">探索摄影作品集</p>
+      <n-button 
         v-if="authStore.isAdmin"
+        class="upload-btn"
+        @click="showUploadModal = true"
       >
         <template #icon>
-          <plus-outlined />
+          <n-icon><add-outline /></n-icon>
         </template>
         上传内容
-      </a-button>
-    </div>
+      </n-button>
+    </section>
     
-    <!-- 筛选器 -->
-    <div class="filter-section">
-      <a-row :gutter="16" align="middle">
-        <a-col :xs="24" :sm="12" :md="8">
-          <a-space>
-            <a-select
-              v-model:value="filters.media_type"
-              :style="{ width: '120px' }"
-              placeholder="类型"
-              @change="handleFilterChange"
-            >
-              <a-select-option value="">全部类型</a-select-option>
-              <a-select-option value="image">照片</a-select-option>
-              <a-select-option value="video">视频</a-select-option>
-            </a-select>
-            
-            <a-select
-              v-model:value="filters.is_paid"
-              :style="{ width: '120px' }"
-              placeholder="价格"
-              @change="handleFilterChange"
-            >
-              <a-select-option :value="undefined">全部价格</a-select-option>
-              <a-select-option :value="false">免费</a-select-option>
-              <a-select-option :value="true">付费</a-select-option>
-            </a-select>
-          </a-space>
-        </a-col>
-        
-        <a-col :xs="24" :sm="12" :md="8">
-          <a-input-search 
+    <!-- 分类过滤 -->
+    <section class="filter-section">
+      <div class="filter-tabs">
+        <button 
+          class="filter-tab"
+          :class="{ active: !filters.media_type }"
+          @click="handleFilterTab('')"
+        >
+          全部作品
+        </button>
+        <button 
+          class="filter-tab"
+          :class="{ active: filters.media_type === 'image' }"
+          @click="handleFilterTab('image')"
+        >
+          照片
+        </button>
+        <button 
+          class="filter-tab"
+          :class="{ active: filters.media_type === 'video' }"
+          @click="handleFilterTab('video')"
+        >
+          视频
+        </button>
+      </div>
+      
+      <div class="filter-controls">
+        <div class="search-box">
+          <n-input 
             v-model:value="filters.search"
             placeholder="搜索标题、标签..."
-            @search="handleSearch"
-          />
-        </a-col>
-        
-        <a-col :xs="24" :sm="24" :md="8">
-          <a-space>
-            <span>排序:</span>
-            <a-select
-              v-model:value="filters.sort_by"
-              :style="{ width: '120px' }"
-              @change="handleFilterChange"
-            >
-              <a-select-option value="created_at">最新</a-select-option>
-              <a-select-option value="views">最多观看</a-select-option>
-              <a-select-option value="likes">最多点赞</a-select-option>
-              <a-select-option value="title">标题</a-select-option>
-            </a-select>
-          </a-space>
-        </a-col>
-      </a-row>
-    </div>
+            clearable
+            @keydown.enter="handleSearch"
+          >
+            <template #prefix>
+              <n-icon><search-outline /></n-icon>
+            </template>
+          </n-input>
+        </div>
+      </div>
+    </section>
 
     <!-- 加载状态 -->
-    <a-spin :spinning="mediaStore.loading" tip="加载中...">
-      <!-- 媒体网格 -->
-      <a-row :gutter="[16, 16]" v-if="mediaStore.mediaItems.length > 0">
-        <a-col 
-          v-for="item in mediaStore.mediaItems" 
-          :key="item.id"
-          :xs="12" 
-          :sm="8" 
-          :md="6" 
-          :lg="4"
-        >
-          <div class="media-card">
-            <a-card 
-              hoverable
-              :cover="renderMediaCover(item)"
-              :actions="[
-                h(EyeOutlined, { onClick: () => handleView(item) }),
-                h(HeartOutlined, { 
-                  style: { color: '#ff4d4f' },
-                  onClick: () => handleLike(item) 
-                })
-              ]"
-              @click="handlePreview(item)"
-            >
-              <a-card-meta>
-                <template #title>
-                  <div class="card-title">
-                    {{ item.title }}
-                    <a-tag v-if="item.is_paid" color="orange" size="small">
-                      ¥{{ item.price }}
-                    </a-tag>
-                    <a-tag v-else color="green" size="small">
-                      免费
-                    </a-tag>
-                  </div>
-                </template>
-                <template #description>
-                  <div class="card-description">
-                    <div class="stats">
-                      <span><eye-outlined /> {{ formatNumber(item.view_count) }}</span>
-                      <span><heart-outlined /> {{ formatNumber(item.like_count) }}</span>
-                    </div>
-                    <div class="file-info">
-                      <span class="file-size">{{ formatFileSize(item.file_size) }}</span>
-                      <span v-if="item.duration" class="duration">
-                        {{ formatDuration(item.duration) }}
-                      </span>
-                    </div>
-                  </div>
-                </template>
-              </a-card-meta>
-            </a-card>
-          </div>
-        </a-col>
-      </a-row>
-
-      <!-- 空状态 -->
-      <a-empty 
-        v-else-if="!mediaStore.loading"
-        description="暂无内容"
-        :image="empty.PRESENTED_IMAGE_SIMPLE"
-      />
-    </a-spin>
-
+    <n-spin v-if="mediaStore.loading" size="large" class="loading-spinner" />
+    
+    <div v-else-if="mediaStore.mediaItems.length > 0">
+      <!-- 免费作品区 -->
+      <section v-if="freeItems.length > 0" class="works-section">
+        <h2 class="section-title">
+          <span class="title-bar"></span>
+          免费浏览
+        </h2>
+        <horizontal-scroll-container>
+          <free-work-card 
+            v-for="item in freeItems" 
+            :key="item.id"
+            :work="item"
+            @click="handlePreview(item)"
+          />
+        </horizontal-scroll-container>
+      </section>
+      
+      <!-- 付费作品区 -->
+      <section v-if="paidItems.length > 0" class="works-section">
+        <h2 class="section-title">
+          <span class="title-bar premium"></span>
+          Premium 精选作品
+        </h2>
+        <horizontal-scroll-container>
+          <premium-work-card 
+            v-for="item in paidItems" 
+            :key="item.id"
+            :work="item"
+            @unlock="handlePreview(item)"
+            @preview="handlePreview(item)"
+          />
+        </horizontal-scroll-container>
+      </section>
+    </div>
+    
+    <!-- 空状态 -->
+    <div v-else class="empty-state">
+      <n-icon size="80" color="#333">
+        <images-outline />
+      </n-icon>
+      <p>暂无作品</p>
+    </div>
+    
     <!-- 分页 -->
     <div class="pagination-section" v-if="mediaStore.pagination.total > 0">
-      <a-pagination 
-        v-model:current="mediaStore.pagination.page"
+      <n-pagination 
+        v-model:page="mediaStore.pagination.page"
         v-model:page-size="mediaStore.pagination.page_size"
-        :total="mediaStore.pagination.total"
-        :show-size-changer="false"
-        :show-quick-jumper="true"
-        :show-total="(total, range) => `${range[0]}-${range[1]} 共 ${total} 条`"
-        @change="handlePageChange"
+        :page-count="Math.ceil(mediaStore.pagination.total / mediaStore.pagination.page_size)"
+        show-quick-jumper
+        @update:page="handlePageChange"
       />
     </div>
 
     <!-- 媒体预览模态框 -->
-    <a-modal
-      v-model:open="previewVisible"
+    <n-modal
+      v-model:show="previewVisible"
+      preset="card"
       :title="currentPreview?.title"
-      :width="800"
-      :footer="null"
-      center
+      :style="{ width: '800px', maxWidth: '90vw' }"
     >
       <div v-if="currentPreview" class="preview-content">
         <div class="preview-media">
@@ -183,22 +150,22 @@
           />
         </div>
         <div class="preview-info">
-          <p v-if="currentPreview.description">{{ currentPreview.description }}</p>
-          <a-space>
+          <n-p v-if="currentPreview.description">{{ currentPreview.description }}</n-p>
+          <n-space>
             <span>上传者: {{ currentPreview.user?.username || '未知' }}</span>
             <span>上传时间: {{ formatDate(currentPreview.created_at) }}</span>
-          </a-space>
+          </n-space>
           <div class="preview-actions">
-            <a-button @click="handleLike(currentPreview)">
+            <n-button @click="handleLike(currentPreview)">
               <template #icon>
-                <heart-outlined />
+                <n-icon><heart-outline /></n-icon>
               </template>
               点赞 ({{ currentPreview.like_count }})
-            </a-button>
+            </n-button>
           </div>
         </div>
       </div>
-    </a-modal>
+    </n-modal>
 
     <!-- 上传模态框 -->
     <MediaUpload 
@@ -209,36 +176,37 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, h, onMounted, watch } from 'vue'
-import { message, Empty } from 'ant-design-vue'
+import { ref, reactive, h, onMounted, watch, computed } from 'vue'
+import { useMessage } from 'naive-ui'
 import { 
-  Typography,
-  Space as ASpace,
-  Select as ASelect,
-  Input as AInput,
-  Row as ARow,
-  Col as ACol,
-  Card as ACard,
-  Pagination as APagination,
-  Button as AButton,
-  Tag as ATag,
-  Spin as ASpin,
-  Modal as AModal,
-} from 'ant-design-vue'
+  NPagination,
+  NButton,
+  NSpin,
+  NModal,
+  NSpace,
+  NInput,
+  NP,
+  NIcon,
+} from 'naive-ui'
 import { 
-  PlusOutlined,
-  EyeOutlined,
-  HeartOutlined,
-} from '@ant-design/icons-vue'
-import { useMediaStore } from '../stores/media'
-import { useAuthStore } from '../stores/auth'
-import { formatNumber, formatFileSize, formatDuration, formatDate, getFullFileUrl } from '../utils'
-import type { MediaItem, MediaListParams } from '../types'
+  AddOutline,
+  EyeOutline,
+  HeartOutline,
+  SearchOutline,
+  ImagesOutline,
+} from '@vicons/ionicons5'
+import { useMediaStore } from '@/stores'
+import { useAuthStore } from '@/stores'
+import { formatNumber, formatFileSize, formatDuration, formatDate, getFullFileUrl } from '@/utils'
+import type { MediaItem, MediaListParams } from '@/types'
 import MediaUpload from '../components/MediaUpload.vue'
+import HorizontalScrollContainer from '../components/ui/HorizontalScrollContainer.vue'
+import FreeWorkCard from '../components/cards/FreeWorkCard.vue'
+import PremiumWorkCard from '../components/cards/PremiumWorkCard.vue'
 
 const mediaStore = useMediaStore()
 const authStore = useAuthStore()
-const empty = Empty
+const message = useMessage()
 
 // 响应式状态
 const filters = reactive<MediaListParams>({
@@ -256,6 +224,22 @@ const previewVisible = ref(false)
 const currentPreview = ref<MediaItem | null>(null)
 const showUploadModal = ref(false)
 
+// 计算属性：分离免费和付费作品
+const freeItems = computed(() => {
+  return mediaStore.mediaItems.filter(item => !item.is_paid)
+})
+
+const paidItems = computed(() => {
+  return mediaStore.mediaItems.filter(item => item.is_paid)
+})
+
+// 处理分类标签切换
+const handleFilterTab = (type: string) => {
+  filters.media_type = type || undefined
+  filters.page = 1
+  loadMediaList()
+}
+
 // 渲染媒体封面
 const renderMediaCover = (item: MediaItem) => {
   const coverPath = item.thumbnail_url || item.file_url
@@ -272,7 +256,7 @@ const renderMediaCover = (item: MediaItem) => {
   })
   
   if (item.media_type === 'video') {
-    return h('div', {
+    return () => h('div', {
       style: {
         position: 'relative',
         height: '200px',
@@ -302,7 +286,7 @@ const renderMediaCover = (item: MediaItem) => {
     ])
   }
   
-  return h('img', {
+  return () => h('img', {
     alt: item.title,
     src: coverUrl,
     style: { height: '200px', width: '100%', objectFit: 'cover' },
@@ -407,104 +391,246 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.page-container {
-  padding: 24px;
-  max-width: 1400px;
-  margin: 0 auto;
+.gallery-page {
+  min-height: 100vh;
+  background: var(--color-dark-900);
+  padding: 80px 24px 48px;
 }
 
-.header-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-}
-
-.filter-section {
-  background: #fafafa;
-  padding: 16px;
-  border-radius: 8px;
-  margin-bottom: 24px;
-}
-
-.media-card {
-  height: 100%;
-}
-
-.card-title {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 14px;
-  line-height: 1.4;
-}
-
-.card-description {
-  font-size: 12px;
-  color: #666;
-}
-
-.stats {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 4px;
-}
-
-.stats span {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.file-info {
-  display: flex;
-  justify-content: space-between;
-  font-size: 11px;
-  color: #999;
-}
-
-.pagination-section {
-  margin-top: 32px;
+/* 页头 */
+.gallery-header {
   text-align: center;
+  margin-bottom: 48px;
+  position: relative;
 }
 
+.page-title {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: bold;
+  margin: 0 0 16px;
+  text-shadow: 
+    0 0 20px rgba(5, 217, 232, 0.5),
+    0 0 40px rgba(5, 217, 232, 0.3);
+}
+
+.text-neon-blue {
+  color: var(--color-neon-blue);
+}
+
+.page-subtitle {
+  font-size: 1.125rem;
+  color: var(--color-text-secondary);
+  margin: 0 0 24px;
+}
+
+.upload-btn {
+  background: linear-gradient(135deg, var(--color-neon-blue), var(--color-neon-purple));
+  border: none;
+  color: var(--color-dark-900);
+  font-weight: 600;
+  padding: 12px 32px;
+  border-radius: 50px;
+  transition: all 0.3s ease;
+}
+
+.upload-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(5, 217, 232, 0.4);
+}
+
+/* 分类过滤 */
+.filter-section {
+  margin-bottom: 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.filter-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.filter-tab {
+  padding: 12px 32px;
+  border-radius: 50px;
+  background: var(--color-dark-700);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-dark-600);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.filter-tab:hover {
+  background: var(--color-dark-600);
+  border-color: var(--color-neon-blue);
+}
+
+.filter-tab.active {
+  background: var(--color-neon-blue);
+  color: var(--color-dark-900);
+  border-color: var(--color-neon-blue);
+  box-shadow: 0 4px 16px rgba(5, 217, 232, 0.3);
+}
+
+.filter-controls {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+.search-box {
+  max-width: 400px;
+  width: 100%;
+}
+
+.search-box :deep(.n-input) {
+  background: var(--color-dark-700);
+  border-color: var(--color-dark-600);
+}
+
+.search-box :deep(.n-input__input-el) {
+  color: var(--color-text-primary);
+}
+
+.search-box :deep(.n-input:hover) {
+  border-color: var(--color-neon-blue);
+}
+
+.search-box :deep(.n-input.n-input--focus) {
+  border-color: var(--color-neon-blue);
+  box-shadow: 0 0 0 2px rgba(5, 217, 232, 0.2);
+}
+
+/* 作品区域 */
+.works-section {
+  margin-bottom: 64px;
+}
+
+.section-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 2rem;
+  margin-bottom: 32px;
+  display: flex;
+  align-items: center;
+  color: var(--color-text-primary);
+}
+
+.title-bar {
+  display: inline-block;
+  width: 4px;
+  height: 32px;
+  background: var(--color-neon-blue);
+  margin-right: 16px;
+  border-radius: 2px;
+}
+
+.title-bar.premium {
+  background: var(--color-neon-pink);
+}
+
+/* 加载和空状态 */
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 80px 24px;
+  color: var(--color-text-secondary);
+}
+
+.empty-state p {
+  margin-top: 16px;
+  font-size: 1.125rem;
+}
+
+/* 分页 */
+.pagination-section {
+  margin-top: 64px;
+  display: flex;
+  justify-content: center;
+}
+
+.pagination-section :deep(.n-pagination) {
+  gap: 8px;
+}
+
+.pagination-section :deep(.n-pagination-item) {
+  background: var(--color-dark-700);
+  border-color: var(--color-dark-600);
+  color: var(--color-text-primary);
+}
+
+.pagination-section :deep(.n-pagination-item:hover) {
+  border-color: var(--color-neon-blue);
+}
+
+.pagination-section :deep(.n-pagination-item--active) {
+  background: var(--color-neon-blue);
+  border-color: var(--color-neon-blue);
+  color: var(--color-dark-900);
+}
+
+/* 预览模态框 */
 .preview-content {
   text-align: center;
 }
 
 .preview-media {
-  margin-bottom: 16px;
+  margin-bottom: 24px;
+  background: var(--color-dark-800);
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 .preview-info {
   text-align: left;
+  color: var(--color-text-secondary);
 }
 
 .preview-info p {
-  margin-bottom: 12px;
-  color: #666;
+  margin-bottom: 16px;
+  line-height: 1.6;
 }
 
 .preview-actions {
-  margin-top: 16px;
+  margin-top: 24px;
   display: flex;
   gap: 12px;
 }
 
+/* 响应式 */
 @media (max-width: 768px) {
-  .page-container {
-    padding: 16px;
+  .gallery-page {
+    padding: 64px 16px 32px;
   }
   
-  .header-section {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 16px;
+  .gallery-header {
+    margin-bottom: 32px;
   }
   
-  .filter-section .ant-row {
-    flex-direction: column;
-    gap: 12px;
+  .filter-section {
+    margin-bottom: 32px;
+  }
+  
+  .works-section {
+    margin-bottom: 48px;
+  }
+  
+  .section-title {
+    font-size: 1.5rem;
+  }
+  
+  .pagination-section {
+    margin-top: 48px;
   }
 }
 </style>

@@ -1,297 +1,413 @@
 <template>
-  <div class="recharge-container">
-    <div class="recharge-header">
-      <a-typography-title :level="1" class="recharge-title">
-        <DollarOutlined />
-        积分充值
-      </a-typography-title>
-      <a-typography-paragraph class="recharge-description">
-        1美元 = 10积分，可用于查看付费照片和视频。支持PayPal和USDT两种支付方式
-      </a-typography-paragraph>
-      <div class="current-balance">
-        <a-statistic
-          title="当前积分余额"
-          :value="userCredits"
-          suffix="积分"
-          :value-style="{ color: '#1890ff', fontSize: '32px', fontWeight: 'bold' }"
-        >
-          <template #prefix>
-            <WalletOutlined />
-          </template>
-        </a-statistic>
+  <div class="recharge-page">
+    <!-- 页头 -->
+    <section class="recharge-header">
+      <h1 class="page-title text-neon-pink">积分充值</h1>
+      <p class="page-subtitle">
+        1美元 = 10积分，可用于查看付费照片和视频
+      </p>
+      
+      <!-- 当前积分余额 -->
+      <div class="balance-card">
+        <div class="balance-icon">
+          <n-icon size="48" color="var(--color-neon-blue)">
+            <wallet-outline />
+          </n-icon>
+        </div>
+        <div class="balance-content">
+          <div class="balance-label">当前积分余额</div>
+          <div class="balance-value">{{ userCredits }}</div>
+        </div>
       </div>
-    </div>
+    </section>
 
-    <!-- 自定义充值金额 -->
-    <a-card title="充值金额" :style="{ marginBottom: '24px' }">
-      <a-form :model="rechargeForm" layout="vertical">
-        <a-form-item label="输入充值金额 (美元)">
-          <a-input-number
-            v-model:value="rechargeForm.amount"
-            :min="1"
-            :max="10000"
-            :step="1"
-            :precision="2"
-            style="width: 100%"
-            size="large"
-            placeholder="请输入充值金额"
-          >
-            <template #addonBefore>$</template>
-            <template #addonAfter>USD</template>
-          </a-input-number>
+    <!-- 三档套餐 -->
+    <section class="packages-section">
+      <h2 class="section-title">积分套餐</h2>
+      
+      <div class="packages-grid">
+        <!-- 套餐 1 -->
+        <div class="package-card">
+          <div class="package-decoration"></div>
+          <h3 class="package-name">探索者</h3>
+          <p class="package-price">¥99<span class="price-unit">/次</span></p>
+          <ul class="package-features">
+            <li>
+              <n-icon class="feature-icon" color="var(--color-neon-blue)">
+                <checkmark-circle-outline />
+              </n-icon>
+              <span>100 积分</span>
+            </li>
+            <li>
+              <n-icon class="feature-icon" color="var(--color-neon-blue)">
+                <checkmark-circle-outline />
+              </n-icon>
+              <span>适合个人使用</span>
+            </li>
+            <li>
+              <n-icon class="feature-icon" color="var(--color-neon-blue)">
+                <checkmark-circle-outline />
+              </n-icon>
+              <span>永久有效</span>
+            </li>
+          </ul>
+          <n-button class="package-btn" @click="selectPackage(10)">
+            选择套餐
+          </n-button>
+        </div>
+        
+        <!-- 套餐 2 (推荐) -->
+        <div class="package-card featured">
+          <div class="featured-badge">最受欢迎</div>
+          <div class="package-decoration pink"></div>
+          <h3 class="package-name">创作者</h3>
+          <p class="package-price">¥299<span class="price-unit">/次</span></p>
+          <ul class="package-features">
+            <li>
+              <n-icon class="feature-icon" color="var(--color-neon-pink)">
+                <checkmark-circle-outline />
+              </n-icon>
+              <span>300 积分</span>
+            </li>
+            <li>
+              <n-icon class="feature-icon" color="var(--color-neon-pink)">
+                <checkmark-circle-outline />
+              </n-icon>
+              <span>优惠10%</span>
+            </li>
+            <li>
+              <n-icon class="feature-icon" color="var(--color-neon-pink)">
+                <checkmark-circle-outline />
+              </n-icon>
+              <span>适合创作者</span>
+            </li>
+            <li>
+              <n-icon class="feature-icon" color="var(--color-neon-pink)">
+                <checkmark-circle-outline />
+              </n-icon>
+              <span>永久有效</span>
+            </li>
+          </ul>
+          <n-button class="package-btn primary" @click="selectPackage(30)">
+            选择套餐
+          </n-button>
+        </div>
+        
+        <!-- 套餐 3 -->
+        <div class="package-card">
+          <div class="package-decoration purple"></div>
+          <h3 class="package-name">专业版</h3>
+          <p class="package-price">¥599<span class="price-unit">/次</span></p>
+          <ul class="package-features">
+            <li>
+              <n-icon class="feature-icon" color="var(--color-neon-purple)">
+                <checkmark-circle-outline />
+              </n-icon>
+              <span>600 积分</span>
+            </li>
+            <li>
+              <n-icon class="feature-icon" color="var(--color-neon-purple)">
+                <checkmark-circle-outline />
+              </n-icon>
+              <span>优惠20%</span>
+            </li>
+            <li>
+              <n-icon class="feature-icon" color="var(--color-neon-purple)">
+                <checkmark-circle-outline />
+              </n-icon>
+              <span>适合专业人士</span>
+            </li>
+            <li>
+              <n-icon class="feature-icon" color="var(--color-neon-purple)">
+                <checkmark-circle-outline />
+              </n-icon>
+              <span>永久有效</span>
+            </li>
+          </ul>
+          <n-button class="package-btn" @click="selectPackage(60)">
+            选择套餐
+          </n-button>
+        </div>
+      </div>
+    </section>
+    
+    <!-- 自定义充值 -->
+    <section class="custom-recharge">
+      <h2 class="section-title">自定义充值</h2>
+      <div class="custom-card">
+        <n-form :model="rechargeForm" class="custom-form">
+          <n-form-item label="输入充值金额 (美元)">
+            <n-input-number
+              v-model:value="rechargeForm.amount"
+              :min="1"
+              :max="10000"
+              :step="1"
+              :precision="2"
+              style="width: 100%"
+              size="large"
+              placeholder="请输入充值金额"
+            >
+              <template #prefix>$</template>
+              <template #suffix>USD</template>
+            </n-input-number>
+          </n-form-item>
+          
           <div v-if="rechargeForm.amount" class="credits-preview">
             将获得 <span class="credits-amount">{{ (rechargeForm.amount * 10).toFixed(0) }}</span> 积分
           </div>
-        </a-form-item>
-
-        <!-- 快捷金额选择 -->
-        <a-form-item label="快捷选择">
-          <a-space :size="12" wrap>
-            <a-button
+          
+          <!-- 快捷金额选择 -->
+          <div class="quick-amounts">
+            <button
               v-for="quick in quickAmounts"
               :key="quick"
-              :type="rechargeForm.amount === quick ? 'primary' : 'default'"
+              class="quick-btn"
+              :class="{ active: rechargeForm.amount === quick }"
               @click="rechargeForm.amount = quick"
             >
               ${{ quick }}
-            </a-button>
-          </a-space>
-        </a-form-item>
-      </a-form>
-    </a-card>
+            </button>
+          </div>
+        </n-form>
+      </div>
+    </section>
 
     <!-- 支付方式选择 -->
-    <a-card 
+    <n-card 
       v-if="rechargeForm.amount && rechargeForm.amount > 0"
       title="选择支付方式"
     >
-      <a-row :gutter="[24, 24]">
-        <a-col :xs="24" :md="12">
+      <n-grid :cols="1" :md="2" :x-gap="24" :y-gap="24">
+        <n-grid-item>
           <div 
             :class="['payment-method', { 'selected': paymentMethod === 'paypal' }]"
             @click="selectPaymentMethod('paypal')"
           >
             <div class="method-header">
-              <PayCircleOutlined class="method-icon" />
+              <n-icon size="32" color="#1890ff"><card-outline /></n-icon>
               <h3>PayPal</h3>
             </div>
             <p>使用PayPal安全快捷支付</p>
           </div>
-        </a-col>
-        <a-col :xs="24" :md="12">
+        </n-grid-item>
+        <n-grid-item>
           <div 
             :class="['payment-method', { 'selected': paymentMethod === 'usdt' }]"
             @click="selectPaymentMethod('usdt')"
           >
             <div class="method-header">
-              <WalletOutlined class="method-icon" />
+              <n-icon size="32" color="#1890ff"><wallet-outline /></n-icon>
               <h3>USDT (加密货币)</h3>
             </div>
             <p>使用USDT稳定币支付</p>
           </div>
-        </a-col>
-      </a-row>
+        </n-grid-item>
+      </n-grid>
 
       <!-- PayPal 支付 -->
       <div v-if="paymentMethod === 'paypal'" class="payment-details">
-        <a-divider />
-        <a-alert
-          message="重要提示"
-          description="付款时请务必在备注中注明您的注册邮箱，以便我们及时为您充值。"
+        <n-divider />
+        <n-alert
+          title="重要提示"
           type="warning"
-          show-icon
           :style="{ marginBottom: '24px' }"
-        />
+        >
+          付款时请务必在备注中注明您的注册邮箱，以便我们及时为您充值。
+        </n-alert>
         <div class="payment-info">
           <h4>付款金额: ${{ rechargeForm.amount }} USD ({{ (rechargeForm.amount * 10).toFixed(0) }} 积分)</h4>
-          <a-button 
+          <n-button 
             type="primary" 
             size="large"
             :loading="loading"
             @click="handleRecharge"
           >
-            <PayCircleOutlined />
+            <template #icon>
+              <n-icon><card-outline /></n-icon>
+            </template>
             创建充值订单
-          </a-button>
+          </n-button>
           <p class="payment-tip">点击后将为您生成支付信息</p>
         </div>
       </div>
 
       <!-- USDT 支付 -->
       <div v-if="paymentMethod === 'usdt'" class="payment-details">
-        <a-divider />
-        <a-alert
-          message="重要提示"
-          description="付款时请务必在备注中注明您的注册邮箱，以便我们及时为您充值。建议使用Binance APP等加密货币钱包扫码或输入地址支付。"
+        <n-divider />
+        <n-alert
+          title="重要提示"
           type="warning"
-          show-icon
           :style="{ marginBottom: '24px' }"
-        />
+        >
+          付款时请务必在备注中注明您的注册邮箱，以便我们及时为您充值。建议使用Binance APP等加密货币钱包扫码或输入地址支付。
+        </n-alert>
         <div class="payment-info">
           <h4>付款金额: ${{ rechargeForm.amount }} USDT ({{ (rechargeForm.amount * 10).toFixed(0) }} 积分)</h4>
-          <a-button 
+          <n-button 
             type="primary" 
             size="large"
             :loading="loading"
             @click="handleRecharge"
           >
-            <WalletOutlined />
+            <template #icon>
+              <n-icon><wallet-outline /></n-icon>
+            </template>
             创建充值订单
-          </a-button>
+          </n-button>
           <p class="payment-tip">点击后将为您生成支付地址和二维码</p>
         </div>
       </div>
-    </a-card>
+    </n-card>
 
     <!-- 支付信息模态框 -->
-    <a-modal
-      v-model:visible="showPaymentModal"
+    <n-modal
+      v-model:show="showPaymentModal"
+      preset="card"
       title="支付信息"
-      :footer="null"
-      width="600px"
+      :style="{ width: '600px', maxWidth: '90vw' }"
     >
       <div v-if="paymentInfo" class="modal-payment-info">
         <!-- PayPal支付信息 -->
         <div v-if="paymentInfo.payment_method === 'paypal'">
-          <a-result
+          <n-result
             status="info"
             title="请完成PayPal支付"
-            :sub-title="`订单号: ${paymentInfo.order_no}`"
+            :description="`订单号: ${paymentInfo.order_no}`"
           >
-            <template #extra>
-              <a-button 
+            <template #footer>
+              <n-button 
                 type="primary" 
                 size="large"
+                tag="a"
                 :href="paymentInfo.payment_info.payment_url"
                 target="_blank"
               >
-                <PayCircleOutlined />
+                <template #icon>
+                  <n-icon><card-outline /></n-icon>
+                </template>
                 前往 PayPal 支付
-              </a-button>
+              </n-button>
             </template>
-          </a-result>
-          <a-descriptions bordered :column="1" style="margin-top: 24px">
-            <a-descriptions-item label="充值金额">${{ paymentInfo.amount }} USD</a-descriptions-item>
-            <a-descriptions-item label="获得积分">{{ paymentInfo.credits }} 积分</a-descriptions-item>
-            <a-descriptions-item label="备注">{{ paymentInfo.payment_info.note }}</a-descriptions-item>
-          </a-descriptions>
+          </n-result>
+          <n-descriptions bordered :column="1" style="margin-top: 24px">
+            <n-descriptions-item label="充值金额">${{ paymentInfo.amount }} USD</n-descriptions-item>
+            <n-descriptions-item label="获得积分">{{ paymentInfo.credits }} 积分</n-descriptions-item>
+            <n-descriptions-item label="备注">{{ paymentInfo.payment_info.note }}</n-descriptions-item>
+          </n-descriptions>
         </div>
 
         <!-- USDT支付信息 -->
         <div v-if="paymentInfo.payment_method === 'usdt'">
-          <a-result
+          <n-result
             status="info"
             title="请完成USDT支付"
-            :sub-title="`订单号: ${paymentInfo.order_no}`"
+            :description="`订单号: ${paymentInfo.order_no}`"
           />
           <div class="usdt-payment-modal">
             <div class="qr-code-modal">
               <img :src="`/${paymentInfo.payment_info.qr_code}`" alt="USDT Payment QR Code" />
               <p>扫码支付</p>
             </div>
-            <a-descriptions bordered :column="1" style="margin-top: 24px">
-              <a-descriptions-item label="充值金额">${{ paymentInfo.amount }} USDT</a-descriptions-item>
-              <a-descriptions-item label="获得积分">{{ paymentInfo.credits }} 积分</a-descriptions-item>
-              <a-descriptions-item label="收款地址">
-                <a-input 
+            <n-descriptions bordered :column="1" style="margin-top: 24px">
+              <n-descriptions-item label="充值金额">${{ paymentInfo.amount }} USDT</n-descriptions-item>
+              <n-descriptions-item label="获得积分">{{ paymentInfo.credits }} 积分</n-descriptions-item>
+              <n-descriptions-item label="收款地址">
+                <n-input 
                   :value="paymentInfo.payment_info.address" 
                   readonly
                 >
                   <template #suffix>
-                    <a-button 
-                      type="link" 
-                      size="small"
+                    <n-button 
+                      text
                       @click="copyText(paymentInfo.payment_info.address)"
                     >
-                      <CopyOutlined />
+                      <template #icon>
+                        <n-icon><copy-outline /></n-icon>
+                      </template>
                       复制
-                    </a-button>
+                    </n-button>
                   </template>
-                </a-input>
-              </a-descriptions-item>
-              <a-descriptions-item label="网络">{{ paymentInfo.payment_info.network }}</a-descriptions-item>
-              <a-descriptions-item label="备注">{{ paymentInfo.payment_info.note }}</a-descriptions-item>
-            </a-descriptions>
+                </n-input>
+              </n-descriptions-item>
+              <n-descriptions-item label="网络">{{ paymentInfo.payment_info.network }}</n-descriptions-item>
+              <n-descriptions-item label="备注">{{ paymentInfo.payment_info.note }}</n-descriptions-item>
+            </n-descriptions>
           </div>
         </div>
 
-        <a-alert
-          message="支付完成后"
-          description="请耐心等待，管理员会在确认收款后为您充值积分。通常在5-30分钟内完成。"
+        <n-alert
+          title="支付完成后"
           type="success"
-          show-icon
           style="margin-top: 24px"
-        />
+        >
+          请耐心等待，管理员会在确认收款后为您充值积分。通常在5-30分钟内完成。
+        </n-alert>
       </div>
-    </a-modal>
+    </n-modal>
 
     <!-- 充值说明 -->
-    <a-card 
+    <n-card 
       title="充值说明" 
       :style="{ marginTop: '48px' }"
     >
-      <a-space direction="vertical" size="large" style="width: 100%">
+      <n-space vertical size="large" style="width: 100%">
         <div class="info-item">
-          <CheckCircleOutlined class="info-icon" />
+          <n-icon size="28" color="#1890ff"><checkmark-circle-outline /></n-icon>
           <div>
             <h4>到账时间</h4>
             <p>PayPal支付通常1-5分钟内到账，USDT支付需要等待区块链确认，通常10-30分钟</p>
           </div>
         </div>
         <div class="info-item">
-          <SafetyOutlined class="info-icon" />
+          <n-icon size="28" color="#1890ff"><shield-checkmark-outline /></n-icon>
           <div>
             <h4>安全保障</h4>
             <p>我们使用安全的支付渠道，您的资金和个人信息将得到充分保护</p>
           </div>
         </div>
         <div class="info-item">
-          <CustomerServiceOutlined class="info-icon" />
+          <n-icon size="28" color="#1890ff"><headset-outline /></n-icon>
           <div>
             <h4>客服支持</h4>
             <p>如遇到充值问题，请联系在线客服，我们将第一时间为您处理</p>
           </div>
         </div>
-      </a-space>
-    </a-card>
+      </n-space>
+    </n-card>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { message } from 'ant-design-vue'
+import { useMessage } from 'naive-ui'
 import { useAuthStore } from '@/stores'
 import { apiClient } from '../utils/api'
 import type { CreditRechargeRequest, CreditRechargeResponse } from '@/types'
 import {
-  Row as ARow,
-  Col as ACol,
-  Card as ACard,
-  Button as AButton,
-  Divider as ADivider,
-  Space as ASpace,
-  Alert as AAlert,
-  Input as AInput,
-  InputNumber as AInputNumber,
-  Form as AForm,
-  FormItem as AFormItem,
-  Modal as AModal,
-  Result as AResult,
-  Descriptions as ADescriptions,
-  DescriptionsItem as ADescriptionsItem,
-  Statistic as AStatistic,
-} from 'ant-design-vue'
+  NButton,
+  NSpace,
+  NAlert,
+  NInput,
+  NInputNumber,
+  NForm,
+  NFormItem,
+  NModal,
+  NResult,
+  NDescriptions,
+  NDescriptionsItem,
+  NIcon,
+} from 'naive-ui'
 import {
-  DollarOutlined,
-  PayCircleOutlined,
-  WalletOutlined,
-  CopyOutlined,
-  CheckCircleOutlined,
-  SafetyOutlined,
-  CustomerServiceOutlined,
-} from '@ant-design/icons-vue'
+  CardOutline,
+  WalletOutline,
+  CopyOutline,
+  CheckmarkCircleOutline,
+  ShieldCheckmarkOutline,
+  HeadsetOutline,
+} from '@vicons/ionicons5'
 
 const authStore = useAuthStore()
+const message = useMessage()
 
 // 充值表单
 const rechargeForm = ref({
@@ -313,6 +429,12 @@ const loading = ref(false)
 // 支付信息模态框
 const showPaymentModal = ref(false)
 const paymentInfo = ref<CreditRechargeResponse | null>(null)
+
+// 选择套餐
+const selectPackage = (amount: number) => {
+  rechargeForm.value.amount = amount
+  message.success(`已选择 ${amount} 美元套餐`)
+}
 
 // 选择支付方式
 const selectPaymentMethod = (method: 'paypal' | 'usdt') => {
@@ -378,66 +500,349 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.recharge-container {
-  padding: 24px;
-  max-width: 1200px;
-  margin: 0 auto;
+.recharge-page {
+  min-height: 100vh;
+  background: var(--color-dark-900);
+  padding: 80px 24px 48px;
 }
 
+/* 页头 */
 .recharge-header {
   text-align: center;
-  margin-bottom: 48px;
+  margin-bottom: 64px;
 }
 
-.recharge-title {
-  color: #1890ff;
-  margin-bottom: 16px;
+.page-title {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: bold;
+  margin: 0 0 16px;
+  text-shadow: 
+    0 0 20px rgba(255, 42, 109, 0.5),
+    0 0 40px rgba(255, 42, 109, 0.3);
 }
 
-.recharge-description {
-  font-size: 18px;
-  color: #666;
-  max-width: 700px;
-  margin: 0 auto 24px;
+.text-neon-pink {
+  color: var(--color-neon-pink);
 }
 
-.current-balance {
+.page-subtitle {
+  font-size: 1.125rem;
+  color: var(--color-text-secondary);
+  margin: 0 0 32px;
+}
+
+/* 余额卡片 */
+.balance-card {
+  max-width: 400px;
+  margin: 0 auto;
+  background: var(--color-dark-800);
+  border: 1px solid var(--color-dark-600);
+  border-radius: 16px;
+  padding: 32px;
   display: flex;
+  align-items: center;
+  gap: 24px;
+  transition: all 0.3s ease;
+}
+
+.balance-card:hover {
+  border-color: var(--color-neon-blue);
+  box-shadow: 0 8px 32px rgba(5, 217, 232, 0.2);
+}
+
+.balance-icon {
+  flex-shrink: 0;
+  width: 72px;
+  height: 72px;
+  background: rgba(5, 217, 232, 0.1);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
   justify-content: center;
-  margin-top: 32px;
+}
+
+.balance-content {
+  flex: 1;
+}
+
+.balance-label {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 8px;
+}
+
+.balance-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--color-neon-blue);
+  text-shadow: 0 0 20px rgba(5, 217, 232, 0.3);
+}
+
+/* 套餐区域 */
+.packages-section {
+  max-width: 1200px;
+  margin: 0 auto 64px;
+}
+
+.section-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 2rem;
+  text-align: center;
+  margin-bottom: 48px;
+  color: var(--color-text-primary);
+}
+
+.packages-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 32px;
+}
+
+.package-card {
+  background: var(--color-dark-700);
+  border: 1px solid var(--color-dark-600);
+  border-radius: 16px;
+  padding: 40px 32px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.package-card:hover {
+  transform: translateY(-8px);
+  border-color: var(--color-neon-blue);
+  box-shadow: 0 12px 40px rgba(5, 217, 232, 0.2);
+}
+
+.package-card.featured {
+  border-color: var(--color-neon-pink);
+  transform: scale(1.05);
+  z-index: 10;
+  box-shadow: 0 12px 40px rgba(255, 42, 109, 0.2);
+}
+
+.package-card.featured:hover {
+  transform: scale(1.05) translateY(-8px);
+  border-color: var(--color-neon-pink);
+  box-shadow: 0 16px 48px rgba(255, 42, 109, 0.3);
+}
+
+.package-decoration {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 120px;
+  height: 120px;
+  background: rgba(5, 217, 232, 0.1);
+  border-radius: 50%;
+  transform: translate(40px, -40px);
+  transition: all 0.3s ease;
+}
+
+.package-decoration.pink {
+  background: rgba(255, 42, 109, 0.1);
+}
+
+.package-decoration.purple {
+  background: rgba(211, 0, 197, 0.1);
+}
+
+.package-card:hover .package-decoration {
+  background: rgba(5, 217, 232, 0.2);
+}
+
+.package-card.featured .package-decoration {
+  background: rgba(255, 42, 109, 0.15);
+}
+
+.featured-badge {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: var(--color-neon-pink);
+  color: var(--color-dark-900);
+  text-align: center;
+  padding: 8px;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.package-name {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0 0 16px;
+  position: relative;
+  z-index: 1;
+}
+
+.package-card.featured .package-name {
+  margin-top: 24px;
+}
+
+.package-price {
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0 0 32px;
+  position: relative;
+  z-index: 1;
+}
+
+.price-unit {
+  font-size: 1.25rem;
+  color: var(--color-text-secondary);
+  font-weight: 400;
+}
+
+.package-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 32px;
+}
+
+.package-features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+  color: var(--color-text-secondary);
+}
+
+.feature-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.package-btn {
+  width: 100%;
+  padding: 14px 32px;
+  border-radius: 50px;
+  font-weight: 600;
+  background: transparent;
+  border: 1px solid var(--color-neon-blue);
+  color: var(--color-neon-blue);
+  transition: all 0.3s ease;
+}
+
+.package-btn:hover {
+  background: var(--color-neon-blue);
+  color: var(--color-dark-900);
+  box-shadow: 0 8px 24px rgba(5, 217, 232, 0.4);
+}
+
+.package-btn.primary {
+  background: var(--color-neon-pink);
+  border-color: var(--color-neon-pink);
+  color: white;
+}
+
+.package-btn.primary:hover {
+  background: transparent;
+  color: var(--color-neon-pink);
+}
+
+/* 自定义充值 */
+.custom-recharge {
+  max-width: 800px;
+  margin: 0 auto 64px;
+}
+
+.custom-card {
+  background: var(--color-dark-800);
+  border: 1px solid var(--color-dark-600);
+  border-radius: 16px;
+  padding: 32px;
+}
+
+.custom-form :deep(.n-form-item-label) {
+  color: var(--color-text-primary);
+}
+
+.custom-form :deep(.n-input-number) {
+  background: var(--color-dark-700);
+  border-color: var(--color-dark-600);
+}
+
+.custom-form :deep(.n-input-number__input) {
+  color: var(--color-text-primary);
+}
+
+.custom-form :deep(.n-input-number:hover) {
+  border-color: var(--color-neon-pink);
+}
+
+.custom-form :deep(.n-input-number.n-input-number--focus) {
+  border-color: var(--color-neon-pink);
+  box-shadow: 0 0 0 2px rgba(255, 42, 109, 0.2);
 }
 
 .credits-preview {
-  margin-top: 12px;
-  font-size: 16px;
-  color: #52c41a;
+  margin-top: 16px;
+  font-size: 1.125rem;
+  color: var(--color-neon-blue);
   font-weight: 500;
+  text-align: center;
 }
 
 .credits-amount {
-  font-size: 24px;
-  font-weight: bold;
-  color: #1890ff;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--color-neon-pink);
+  text-shadow: 0 0 20px rgba(255, 42, 109, 0.3);
 }
 
+.quick-amounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
 
-/* 支付方式 */
-.payment-method {
-  padding: 24px;
-  border: 2px solid #e8e8e8;
-  border-radius: 12px;
+.quick-btn {
+  padding: 12px 24px;
+  border-radius: 50px;
+  background: var(--color-dark-700);
+  border: 1px solid var(--color-dark-600);
+  color: var(--color-text-secondary);
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
+.quick-btn:hover {
+  border-color: var(--color-neon-blue);
+  color: var(--color-neon-blue);
+}
+
+.quick-btn.active {
+  background: var(--color-neon-blue);
+  border-color: var(--color-neon-blue);
+  color: var(--color-dark-900);
+  box-shadow: 0 4px 16px rgba(5, 217, 232, 0.3);
+}
+
+/* 支付方式 */
+.payment-method {
+  padding: 24px;
+  border: 2px solid var(--color-dark-600);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: var(--color-dark-700);
+}
+
 .payment-method:hover {
-  border-color: #1890ff;
-  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.2);
+  border-color: var(--color-neon-blue);
+  box-shadow: 0 4px 16px rgba(5, 217, 232, 0.2);
 }
 
 .payment-method.selected {
-  border-color: #1890ff;
-  background: #e6f7ff;
+  border-color: var(--color-neon-pink);
+  background: rgba(255, 42, 109, 0.1);
+  box-shadow: 0 4px 16px rgba(255, 42, 109, 0.2);
 }
 
 .method-header {
@@ -447,20 +852,16 @@ onMounted(async () => {
   margin-bottom: 12px;
 }
 
-.method-icon {
-  font-size: 32px;
-  color: #1890ff;
-}
-
 .payment-method h3 {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
+  color: var(--color-text-primary);
 }
 
 .payment-method p {
   margin: 0;
-  color: #666;
+  color: var(--color-text-secondary);
   font-size: 14px;
 }
 
@@ -476,29 +877,16 @@ onMounted(async () => {
 .payment-info h4 {
   font-size: 20px;
   margin-bottom: 24px;
-  color: #333;
-}
-
-.payment-info .ant-btn {
-  margin-bottom: 16px;
+  color: var(--color-text-primary);
 }
 
 .payment-tip {
-  color: #999;
+  color: var(--color-text-secondary);
   font-size: 14px;
-  margin: 0;
+  margin: 16px 0 0 0;
 }
 
 /* USDT 支付 */
-.usdt-payment {
-  display: flex;
-  gap: 48px;
-  align-items: flex-start;
-  justify-content: center;
-  margin-top: 24px;
-  flex-wrap: wrap;
-}
-
 .modal-payment-info {
   padding: 12px 0;
 }
@@ -511,7 +899,7 @@ onMounted(async () => {
 .qr-code-modal img {
   width: 200px;
   height: 200px;
-  border: 2px solid #e8e8e8;
+  border: 2px solid var(--color-dark-600);
   border-radius: 8px;
   padding: 8px;
   background: white;
@@ -520,7 +908,7 @@ onMounted(async () => {
 .qr-code-modal p {
   margin-top: 12px;
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
   font-weight: 500;
 }
 
@@ -531,46 +919,44 @@ onMounted(async () => {
   gap: 16px;
 }
 
-.info-icon {
-  font-size: 28px;
-  color: #1890ff;
-  margin-top: 4px;
-}
-
 .info-item h4 {
   margin: 0 0 8px 0;
   font-size: 16px;
-  color: #333;
+  color: var(--color-text-primary);
   font-weight: 600;
 }
 
 .info-item p {
   margin: 0;
-  color: #666;
+  color: var(--color-text-secondary);
   line-height: 1.6;
 }
 
 /* 响应式 */
 @media (max-width: 768px) {
-  .recharge-container {
-    padding: 16px;
+  .recharge-page {
+    padding: 64px 16px 32px;
   }
 
   .recharge-header {
-    margin-bottom: 32px;
+    margin-bottom: 48px;
   }
-
-  .price {
-    font-size: 36px;
-  }
-
-  .usdt-payment {
+  
+  .balance-card {
     flex-direction: column;
-    align-items: center;
+    text-align: center;
   }
-
-  .address-info {
-    width: 100%;
+  
+  .packages-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .package-card.featured {
+    transform: none;
+  }
+  
+  .package-card.featured:hover {
+    transform: translateY(-8px);
   }
 }
 </style>

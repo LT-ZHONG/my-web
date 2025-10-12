@@ -1,35 +1,43 @@
 /* 主应用布局样式 */
 .app-layout {
   min-height: 100vh;
-  background: #ffffff;
+  background: var(--color-dark-900);
 }
 
 .app-content {
-  min-height: calc(100vh - 128px); /* 减去头部和底部高度 */
-  padding: 24px;
-  background: #ffffff;
+  min-height: calc(100vh - 128px);
+  padding: 0;
+  background: var(--color-dark-900);
 }
 
 /* 页面容器 */
 .page-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 16px;
+  padding: 80px 16px 40px;
+}
+
+.page-section {
+  padding: 80px 0;
 }
 
 .page-title {
-  font-size: 28px;
-  font-weight: 600;
-  color: #333333;
+  font-family: var(--font-serif);
+  font-size: clamp(1.5rem, 5vw, 3rem);
+  font-weight: 700;
+  color: var(--color-text-primary);
   margin-bottom: 24px;
   text-align: center;
 }
 
 .page-subtitle {
   font-size: 16px;
-  color: #666666;
+  color: var(--color-text-secondary);
   text-align: center;
   margin-bottom: 32px;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* 网格布局 */
@@ -99,20 +107,22 @@
 
 /* 表单样式 */
 .form-container {
-  max-width: 400px;
+  max-width: 500px;
   margin: 0 auto;
-  padding: 32px;
-  background: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  padding: 48px;
+  background: var(--color-dark-800);
+  border-radius: 16px;
+  border: 1px solid var(--color-dark-600);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
 .form-title {
-  font-size: 24px;
-  font-weight: 600;
+  font-family: var(--font-serif);
+  font-size: 32px;
+  font-weight: 700;
   text-align: center;
   margin-bottom: 32px;
-  color: #333333;
+  color: var(--color-text-primary);
 }
 
 .form-item {
@@ -126,50 +136,61 @@
   margin-top: 32px;
 }
 
+@media (max-width: 768px) {
+  .form-container {
+    padding: 32px 24px;
+  }
+  
+  .form-title {
+    font-size: 24px;
+  }
+}
+
 /* 媒体画廊样式 */
 .media-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
-  margin-top: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 24px;
+  margin-top: 32px;
 }
 
 .media-item {
-  background: #ffffff;
+  background: var(--color-dark-800);
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--color-dark-600);
   transition: all 0.3s ease;
   cursor: pointer;
 }
 
 .media-item:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5);
+  border-color: var(--color-neon-blue);
 }
 
 .media-image,
 .media-video {
   width: 100%;
-  height: 200px;
+  height: 240px;
   object-fit: cover;
 }
 
 .media-info {
-  padding: 16px;
+  padding: 20px;
 }
 
 .media-title {
-  font-size: 16px;
-  font-weight: 500;
-  color: #333333;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text-primary);
   margin-bottom: 8px;
 }
 
 .media-description {
   font-size: 14px;
-  color: #666666;
-  line-height: 1.5;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
 }
 
 .media-meta {
@@ -178,17 +199,25 @@
   align-items: center;
   margin-top: 12px;
   font-size: 12px;
-  color: #999999;
+  color: var(--color-text-tertiary);
 }
 
 .media-price {
-  font-size: 16px;
-  font-weight: 600;
-  color: #ff6b35;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-neon-pink);
 }
 
 .media-free {
-  color: #52c41a;
+  color: var(--color-neon-blue);
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .media-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
 }
 
 /* 聊天样式 */
@@ -196,23 +225,24 @@
   display: flex;
   flex-direction: column;
   height: calc(100vh - 200px);
-  background: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: var(--color-dark-800);
+  border-radius: 16px;
+  border: 1px solid var(--color-dark-600);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   overflow: hidden;
 }
 
 .chat-messages {
   flex: 1;
-  padding: 16px;
+  padding: 24px;
   overflow-y: auto;
-  background: #fafafa;
+  background: var(--color-dark-900);
 }
 
 .chat-input {
-  padding: 16px;
-  border-top: 1px solid #e8e8e8;
-  background: #ffffff;
+  padding: 24px;
+  border-top: 1px solid var(--color-dark-600);
+  background: var(--color-dark-800);
 }
 
 .message {
@@ -225,15 +255,29 @@
 
 .message-sent {
   margin-left: auto;
-  background: #ff6b35;
-  color: #ffffff;
+  background: var(--color-neon-blue);
+  color: var(--color-dark-900);
+  border-radius: 12px;
+  border-top-right-radius: 4px;
 }
 
 .message-received {
   margin-right: auto;
-  background: #ffffff;
-  color: #333333;
-  border: 1px solid #e8e8e8;
+  background: var(--color-dark-700);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-dark-600);
+  border-radius: 12px;
+  border-top-left-radius: 4px;
+}
+
+@media (max-width: 768px) {
+  .chat-container {
+    height: calc(100vh - 150px);
+  }
+  
+  .message {
+    max-width: 85%;
+  }
 }
 
 /* 状态指示器 */
@@ -246,13 +290,41 @@
 }
 
 .status-online {
-  background: #52c41a;
+  background: var(--color-neon-blue);
+  box-shadow: 0 0 8px var(--color-neon-blue);
 }
 
 .status-offline {
-  background: #999999;
+  background: var(--color-text-tertiary);
 }
 
 .status-busy {
-  background: #ff4d4f;
+  background: var(--color-neon-pink);
+  box-shadow: 0 0 8px var(--color-neon-pink);
+}
+
+/* 通用卡片样式 */
+.card {
+  background: var(--color-dark-800);
+  border: 1px solid var(--color-dark-600);
+  border-radius: 12px;
+  padding: 24px;
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  border-color: var(--color-dark-500);
+}
+
+/* 按钮样式覆盖 */
+.btn-neon-blue {
+  background: var(--color-neon-blue);
+  color: var(--color-dark-900);
+  border: none;
+}
+
+.btn-neon-pink {
+  background: var(--color-neon-pink);
+  color: white;
+  border: none;
 }

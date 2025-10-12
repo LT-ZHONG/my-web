@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { mediaAPI } from '../services/media'
 import { handleApiError } from '../utils/api'
-import type { MediaItem, MediaUploadData, MediaListParams, MediaUpdateData, MediaStats } from '../types'
+import type { MediaItem, MediaUploadData, MediaListParams, MediaUpdateData, MediaStats } from '@/types'
 
 export const useMediaStore = defineStore('media', () => {
   // 状态
